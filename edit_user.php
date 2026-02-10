@@ -203,8 +203,18 @@ $row = $result->fetch_assoc();
         <div class="offcanvas-body">
             <ul class="list-unstyled">
                 <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-list-check"></i> รายงานกิจกรรม</a></li>
-                <li><a href="user_management.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
+                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
+                <li><a href="admin_e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-address-book"></i> E-Portfolio</a></li>
+                <li><a href="admin_transcript.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-file-lines"></i> Transcript</a></li>
+                <li><a href="admin_approve_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-calendar-check"></i> อนุมัติกิจกรรม</a></li>
+                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
             </ul>
         </div>
@@ -265,7 +275,7 @@ $row = $result->fetch_assoc();
                 <br>
                 <div class="d-flex text-center btn-group-responsive mt-4">
                     <button type="submit" class="btn btn-purple">บันทึก</button>
-                    <button type="button" onclick="window.location.href='user_management.php'"
+                    <button type="button" onclick="window.location.href='admin_user_management.php'"
                         class="btn btn-cancel">ยกเลิก</button>
                 </div>
             </form>
@@ -306,7 +316,7 @@ $row = $result->fetch_assoc();
         }
 
         $("#closeModalBtn").on("click", function() {
-            window.location.href = "user_management.php";
+            window.location.href = "admin_user_management.php";
         });
     });
     </script>
