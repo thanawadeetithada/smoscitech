@@ -11,7 +11,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
     $password = $_POST['password'];
     $confirmpassword = $_POST['confirmpassword'];
-    $userrole = 'user';
+    $userrole = 'club_member';
 
     if ($password !== $confirmpassword) {
         $error_message = "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน";
@@ -123,6 +123,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         text-align: left;
         font-weight: bold;
         margin-top: 10px;
+    }
+
+    .label-modal {
+        text-align: center;
     }
 
     input {
@@ -267,7 +271,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div id="successModal" class="modal">
         <div class="modal-content">
             <h2>สมัครสมาชิกสำเร็จ!</h2>
-            <label>คุณได้สมัครสมาชิกเรียบร้อยแล้ว</<label><br>
+            <label class="label-modal">คุณได้สมัครสมาชิกเรียบร้อยแล้ว</<label><br>
                 <button class="modal-button" id="modalConfirmBtn">ตกลง</button>
         </div>
     </div>

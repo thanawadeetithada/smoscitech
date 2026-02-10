@@ -78,16 +78,12 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
         </div>
         <div class="offcanvas-body">
             <ul class="list-unstyled">
-                <li><a href="report_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="activity.php" class="text-white text-decoration-none d-block py-2"><i
+                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
+                <li><a href="admin_eportfolio.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> E-Portfolio</a></li>
-                <li><a href="transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-list-check"></i> Transcript</a></li>
-                <li><a href="score_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-list-check"></i> คะแนนกิจกรรม</a></li>
                 <li><a href="user_management.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
             </ul>
