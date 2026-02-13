@@ -3,6 +3,7 @@ require 'db.php';
 
 $error_message = "";
 $registration_success = false;
+$profile_image = "default.png";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $first_name = $_POST['first_name'];
@@ -11,7 +12,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
     $password = $_POST['password'];
     $confirmpassword = $_POST['confirmpassword'];
+    $academic_year = $_POST['academic_year'];
+    $department = $_POST['department'];
     $userrole = 'club_member';
+
+$profile_image = isset($_POST['existing_profile_image']) ? $_POST['existing_profile_image'] : "default.png";
+
+if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
+    $allowed = array("jpg" => "image/jpg", "jpeg" => "image/jpeg", "png" => "image/png");
+    $filename = $_FILES["profile_image"]["name"];
+    $filesize = $_FILES["profile_image"]["size"];
+    $ext = pathinfo($filename, PATHINFO_EXTENSION);
+
+    if (!array_key_exists(strtolower($ext), $allowed)) {
+        $error_message = "กรุณาเลือกไฟล์รูปภาพที่ถูกต้อง (jpg, jpeg, png)";
+    }
+
+    $maxsize = 2 * 1024 * 1024;
+    if ($filesize > $maxsize) {
+        $error_message = "ขนาดรูปภาพต้องไม่เกิน 2MB";
+    }
+
+    if (empty($error_message)) {
+        $new_filename = $username . "_" . time() . "." . $ext;
+        if (!is_dir('uploads')) { mkdir('uploads', 0777, true); }
+        
+        if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], "uploads/" . $new_filename)) {
+            if ($profile_image != "default.png" && file_exists("uploads/" . $profile_image)) {
+                unlink("uploads/" . $profile_image);
+            }
+            $profile_image = $new_filename;
+        }
+    }
+}
 
     if ($password !== $confirmpassword) {
         $error_message = "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน";
@@ -30,9 +63,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if ($stmt->num_rows > 0) {
                 $stmt->bind_result($existing_email, $existing_username);
                 $stmt->fetch();
-
                 if ($email === $existing_email && $username === $existing_username) {
-                    $error_message = "อีเมลและชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว กรุณาใช้อื่น";
+                    $error_message = "อีเมลและชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว";
                 } elseif ($email === $existing_email) {
                     $error_message = "อีเมลนี้ถูกใช้ไปแล้ว กรุณาใช้อีเมลอื่น";
                 } elseif ($username === $existing_username) {
@@ -46,12 +78,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if (empty($error_message)) {
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);   
-        $sql = "INSERT INTO users (first_name, last_name, email, username, password, userrole) 
-                VALUES (?, ?, ?, ?, ?, ?)";
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $sql = "INSERT INTO users (first_name, last_name, email, username, password, academic_year, department, profile_image, userrole) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
-        try {$stmt = $conn->prepare($sql);
-            $stmt->bind_param("ssssss", $first_name, $last_name, $email, $username, $hashed_password, $userrole);
+        try {
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("sssssssss", $first_name, $last_name, $email, $username, $hashed_password, $academic_year, $department, $profile_image, $userrole);
             $stmt->execute();
             $registration_success = true;
             $stmt->close();
@@ -63,7 +96,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 }
-    
     $conn->close();
 }
 ?>
@@ -81,16 +113,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
     body {
         font-family: 'Prompt', sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
+        height: auto;
         background: url('bg/sky.png') no-repeat center center/cover;
         margin: 0;
         background: #cfd8e5;
@@ -98,19 +128,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     .container {
         background: rgba(255, 255, 255, 0.9);
-        padding: 45px;
+        padding: 30px;
         border-radius: 15px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         width: 100%;
-        max-width: 500px;
-        margin: 30px;
-        border: 1px solid #ccc;
+        max-width: 600px;
+        margin: 20px;
     }
 
     h2 {
         margin-bottom: 20px;
         color: black;
         text-align: center;
+        margin-top: 20px;
     }
 
     form {
@@ -125,179 +155,285 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         margin-top: 10px;
     }
 
-    .label-modal {
-        text-align: center;
+
+    button {
+        width: 48%;
+        padding: 12px;
+        font-size: 18px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s;
     }
 
-    input {
-        width: calc(100% - 20px);
-        padding: 12px;
-        margin: 5px 0;
+    .submit-btn {
+        background: #8c99bc;
+        color: white;
+    }
+
+    .cancel-btn {
+        background: #ccc;
+        color: black;
+        margin-left: 5px;
+    }
+
+    .form-control {
+        padding: 10px;
         border: 1px solid #ccc;
         border-radius: 8px;
         font-size: 16px;
     }
 
-    button {
-        width: 100%;
-        padding: 12px;
-        background: #8c99bc;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 18px;
-        cursor: pointer;
-        transition: background 0.3s;
-        margin-top: 15px;
-    }
-
-    a {
-        display: block;
-        text-align: center;
+    .form-label {
         margin-top: 10px;
-        color: #007BFF;
-        text-decoration: none;
-        font-weight: bold;
+        margin-bottom: 0;
     }
 
-    .alert {
-        padding: 20px;
-        margin-bottom: 15px;
-        border-radius: 5px;
-        text-align: center;
+    .container-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - 56px);
     }
 
-    .alert-danger {
-        background-color: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-        font-size: 16px;
-        font-weight: bold;
+    .bg-purple {
+        background-color: #8c99bc !important;
     }
 
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background-color: rgba(0, 0, 0, 0.5);
+    .btn-group-responsive {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: nowrap;
     }
 
-    .modal-content {
-        background-color: #fff;
-        margin: 15% auto;
-        padding: 30px;
-        border-radius: 12px;
-        text-align: center;
-        width: 80%;
-        max-width: 400px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        animation: fadeIn 0.3s ease-in-out;
+    .btn-group-responsive .btn {
+        flex: 1 1 200px;
+        max-width: 200px;
     }
 
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-
-        to {
-            opacity: 1;
-            transform: scale(1);
+    @media (max-width: 576px) {
+        .btn-group-responsive .btn {
+            width: 100%;
+            max-width: none;
         }
     }
 
-    .modal-button {
-        background-color: #8c99bc;
-        color: white;
-        padding: 10px 20px;
+    .btn-purple {
+        width: 20%;
+        background-color: #8c99bc !important;
+        color: white !important;
         border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        margin-top: 15px;
-        font-size: 18px;
-        width: fit-content;
     }
 
-    .form-control {
-        padding: 12px;
+    .btn-purple:hover {
+        background-color: #9FA8DA !important;
+    }
+
+    .btn-cancel {
+        width: 20%;
+        background-color: #c7c5c5 !important;
+        color: black !important;
+    }
+
+    .btn-cancel:hover {
+        background-color: #E8E8E8 !important;
     }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h2>สมัครสมาชิก</h2>
-        <?php if (!empty($error_message)): ?>
-        <div class="alert alert-danger" role="alert">
-            <?php echo $error_message; ?>
+    <div class="container-wrapper">
+        <div class="container">
+            <h2>สมัครสมาชิก</h2>
+            <?php if (!empty($error_message)): ?>
+            <div class="alert alert-danger" role="alert">
+                <?php echo $error_message; ?>
+            </div>
+            <?php endif; ?>
+            <form action="" method="POST" enctype="multipart/form-data">
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="first_name" class="form-label">ชื่อ</label>
+                        <input type="text" id="first_name" name="first_name" placeholder="ชื่อ" required
+                            class="form-control"
+                            value="<?php echo isset($_POST['first_name']) ? htmlspecialchars($_POST['first_name']) : ''; ?>">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="last_name" class="form-label">นามสกุล</label>
+                        <input type="text" id="last_name" name="last_name" placeholder="นามสกุล" required
+                            class="form-control"
+                            value="<?php echo isset($_POST['last_name']) ? htmlspecialchars($_POST['last_name']) : ''; ?>">
+
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="username" class="form-label">ชื่อผู้ใช้งาน</label>
+                        <input type="text" id="username" name="username" placeholder="ชื่อผู้ใช้งาน" required
+                            class="form-control"
+                            value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
+
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="email" class="form-label">E-mail</label>
+                        <input type="email" id="email" name="email" placeholder="E-mail" required class="form-control"
+                            value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="academic_year" class="form-label">ปีการศึกษา</label>
+                        <input type="number" name="academic_year" class="form-control" placeholder="ระบุปีการศึกษา"
+                            required value="<?php echo @htmlspecialchars($_POST['academic_year']); ?>">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="department" class="form-label">สาขาวิชา</label>
+                        <select class="form-control" id="department" name="department" required>
+                            <option value="" disabled <?php echo !isset($_POST['department']) ? 'selected' : ''; ?>>--
+                                เลือกสาขาวิชา --</option>
+                            <?php
+    $depts = [
+        "วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "นวัตกรรมและธุรกิจอาหาร",
+        "สาธารณสุขศาสตร์", "เคมี (วท.บ.)", "วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม",
+        "ฟิสิกส์", "เคมี (ค.บ.)", "ชีววิทยา", "คณิตศาสตร์ประยุกต์"
+    ];
+    foreach ($depts as $d) {
+        $selected = (isset($_POST['department']) && $_POST['department'] == $d) ? 'selected' : '';
+        echo "<option value=\"$d\" $selected>$d</option>";
+    }
+    ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="password" class="form-label">รหัสผ่าน</label>
+                        <input type="password" id="password" name="password" placeholder="รหัสผ่าน" required
+                            class="form-control">
+
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="confirmpassword" class="form-label">ยืนยันรหัสผ่าน</label>
+                        <input type="password" id="confirmpassword" name="confirmpassword" placeholder="ยืนยันรหัสผ่าน"
+                            required class="form-control">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="profile_image" class="form-label">รูปโปรไฟล์</label>
+                        <input type="file" id="profile_image" name="profile_image" class="form-control" accept="image/*"
+                            onchange="previewImage(event)">
+
+                        <input type="hidden" name="existing_profile_image" value="<?php echo $profile_image; ?>">
+
+                        <div class="mb-2 mt-4 text-center">
+                            <?php 
+                $preview_src = "";
+                $preview_style = "display: none;";
+                if ($profile_image != "default.png" && file_exists("uploads/" . $profile_image)) {
+                    $preview_src = "uploads/" . $profile_image;
+                    $preview_style = "display: inline-block;";
+                }
+            ?>
+                            <img id="preview" src="<?php echo $preview_src; ?>" alt="Preview"
+                                style="width: 150px; height: 150px; object-fit: cover; border-radius: 50%; border: 2px solid #ddd; <?php echo $preview_style; ?>">
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex text-center btn-group-responsive mt-4">
+                    <button type="submit" class="btn btn-purple">บันทึก</button>
+                    <button type="button" onclick="window.location.href='index.php'"
+                        class="btn btn-cancel">ยกเลิก</button>
+                </div>
+            </form>
         </div>
-        <?php endif; ?>
-
-        <form action="" method="POST" autocomplete="off">
-            <label for="first_name">ชื่อ</label>
-            <input type="text" id="first_name" name="first_name" placeholder="ชื่อ" required class="form-control"
-                value="<?php echo isset($_POST['first_name']) ? htmlspecialchars($_POST['first_name']) : ''; ?>">
-
-            <label for="last_name">นามสกุล</label>
-            <input type="text" id="last_name" name="last_name" placeholder="นามสกุล" required class="form-control"
-                value="<?php echo isset($_POST['last_name']) ? htmlspecialchars($_POST['last_name']) : ''; ?>">
-
-            <label for="username">ชื่อผู้ใช้งาน</label>
-            <input type="text" id="username" name="username" placeholder="ชื่อผู้ใช้งาน" required class="form-control"
-                value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
-
-            <label for="email">E-mail</label>
-            <input type="email" id="email" name="email" placeholder="E-mail" required class="form-control"
-                value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
-
-            <label for="password">รหัสผ่าน</label>
-            <input type="password" id="password" name="password" placeholder="รหัสผ่าน" required class="form-control">
-
-            <label for="confirmpassword">ยืนยันรหัสผ่าน</label>
-            <input type="password" id="confirmpassword" name="confirmpassword" placeholder="ยืนยันรหัสผ่าน" required
-                class="form-control">
-
-            <button type="submit">สมัครสมาชิก</button>
-            <br>
-            <a href="index.php">เข้าสู่ระบบ</a>
-        </form>
     </div>
 
-    <div id="successModal" class="modal">
-        <div class="modal-content">
-            <h2>สมัครสมาชิกสำเร็จ!</h2>
-            <label class="label-modal">คุณได้สมัครสมาชิกเรียบร้อยแล้ว</<label><br>
-                <button class="modal-button" id="modalConfirmBtn">ตกลง</button>
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center">
+                <div class="modal-header bg-purple text-white">
+                    <h5 class="modal-title" id="statusModalLabel">อัปเดต</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center" id="statusMessage">
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-purple" id="closeModalBtn" data-bs-dismiss="modal">ปิด</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-    const modal = document.getElementById("successModal");
-    const confirmBtn = document.getElementById("modalConfirmBtn");
+    $(document).ready(function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status');
 
-    <?php if ($registration_success): ?>
-    modal.style.display = "block";
-    const redirectToLogin = () => window.location.href = 'index.php';
-    const autoRedirectTimeout = setTimeout(redirectToLogin, 3000);
+        if (status === 'success') {
+            $("#statusMessage").html(
+                "<i class='fa-solid fa-circle-check text-success fa-2x mb-2'></i><br>อัปเดตข้อมูลเรียบร้อยแล้ว"
+            );
+            $("#statusModal").modal("show");
+        } else if (status === 'error') {
+            $("#statusMessage").html(
+                "<i class='fa-solid fa-triangle-exclamation text-danger fa-2x mb-2'></i><br>เกิดข้อผิดพลาดในการอัปเดตข้อมูล"
+            );
+            $("#statusModal").modal("show");
+        }
 
-    confirmBtn.onclick = function() {
-        clearTimeout(autoRedirectTimeout);
-        redirectToLogin();
-    }
+        $("#closeModalBtn").on("click", function() {
+            window.location.href = "admin_user_management.php";
+        });
+    });
 
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            clearTimeout(autoRedirectTimeout);
-            redirectToLogin();
+    function previewImage(event) {
+        const reader = new FileReader();
+        const imageField = document.getElementById("preview");
+
+        reader.onload = function() {
+            if (reader.readyState === 2) {
+                imageField.src = reader.result;
+                imageField.style.display = "inline-block"; // แสดงรูปเมื่อโหลดข้อมูลเสร็จ
+            }
+        }
+
+        if (event.target.files && event.target.files[0]) {
+            reader.readAsDataURL(event.target.files[0]);
+        } else {
+            // หากไม่มีการเลือกไฟล์ หรือกดยกเลิก ให้ซ่อนรูปภาพ
+            imageField.src = "";
+            imageField.style.display = "none";
         }
     }
-    <?php endif; ?>
     </script>
+    <?php if ($registration_success): ?>
+    <script>
+    $(document).ready(function() {
+        $("#statusMessage").html(
+            "<i class='fa-solid fa-circle-check text-success fa-2x mb-2'></i><br>สมัครสมาชิกเรียบร้อยแล้ว"
+        );
+        $("#statusModal").modal("show");
+
+        // เมื่อปิด Modal ให้ไปหน้า login หรือหน้าจัดการ
+        $("#statusModal").on('hidden.bs.modal', function() {
+            window.location.href = 'index.php';
+        });
+    });
+    </script>
+    <?php endif; ?>
 </body>
 
 </html>

@@ -172,7 +172,7 @@ ob_end_flush();
 
     button {
         width: 100%;
-        padding: 12px;
+        padding: 8px;
         background: #8c99bc;
         color: white;
         border: none;
@@ -212,7 +212,7 @@ ob_end_flush();
     }
 
     .form-control {
-        padding: 12px;
+        padding: 8px;
     }
 
     form a {

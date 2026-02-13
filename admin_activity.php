@@ -9,6 +9,13 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
+$sql = "SELECT a.*, 
+        (SELECT SUM(capacity) FROM activity_tasks WHERE activity_id = a.activity_id) as total_capacity,
+        (SELECT COUNT(*) FROM activity_registrations WHERE activity_id = a.activity_id AND registration_status != 'cancelled') as current_registrations
+        FROM activities a 
+        ORDER BY a.start_date DESC";
+$result = $conn->query($sql);
+
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -132,6 +139,18 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
         font-weight: bold;
         float: right;
     }
+
+    @media (max-width: 768px) {
+        .btn-create-mobile {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            border-radius: 50px;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+    }
     </style>
 </head>
 
@@ -172,9 +191,15 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     </div>
     <div class="main-content">
         <div class="container-fluid">
-            <div class="mb-4">
-                <h4 class="fw-bold">กิจกรรมสโมสร</h4>
-                <p class="text-muted">ค้นหาและลงทะเบียนเข้าร่วมกิจกรรม</p>
+            <div class="mb-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="fw-bold mb-0">กิจกรรมสโมสร</h4>
+                    <p class="text-muted mb-0">ค้นหาและลงทะเบียนเข้าร่วมกิจกรรม</p>
+                </div>
+                <a href="admin_create_Activity.php" class="btn btn-primary  shadow-sm btn-create-mobile"
+                    style="border-radius: 10px;">
+                    <i class="fa-solid fa-plus-circle me-2"></i>สร้างกิจกรรมใหม่
+                </a>
             </div>
 
             <div class="search-container">
@@ -198,68 +223,116 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
             </div>
 
             <div class="row row-cols-1 row-cols-md-3 g-4">
+                <?php if ($result && $result->num_rows > 0): ?>
+                <?php while($row = $result->fetch_assoc()): 
+                $cover_img = !empty($row['cover_image']) ? 'uploads/covers/' . $row['cover_image'] : '';
+            $status_class = 'status-open';
+            $status_text = ucfirst($row['status']);
+            if($row['status'] == 'closed') $status_class = 'status-closed';
+            if($row['status'] == 'completed') {
+                $status_class = 'bg-secondary';
+                $status_text = 'Finished';
+            }
 
+            $gradients = [
+                'linear-gradient(45deg, #3a7bd5, #00d2ff)',
+                'linear-gradient(45deg, #12c2e9, #c471ed)',
+                'linear-gradient(45deg, #00b09b, #96c93d)',
+                'linear-gradient(45deg, #f12711, #f5af19)'
+            ];
+            $current_gradient = $gradients[$row['activity_id'] % 4];
+        ?>
                 <div class="col">
                     <div class="activity-card">
-                        <div class="card-img-top-custom">
-                            <span class="status-badge status-open">Open</span>
+                        <div class="card-img-top-custom" style="<?php echo $cover_img ? "background: url('$cover_img') center/cover;" : "background: $current_gradient;"; ?>">
+                            <span class="status-badge <?php echo $status_class; ?>">
+                                <?php echo $status_text; ?>
+                            </span>
                         </div>
                         <div class="card-body-custom">
-                            <div class="activity-info"><i class="far fa-calendar-alt"></i> 2023-10-15</div>
-                            <div class="activity-title">ค่ายอาสาพัฒนาชนบท</div>
-                            <p class="text-muted small">รายละเอียดกิจกรรมคร่าวๆ เพื่อให้นักศึกษาได้ทราบขอบเขต...</p>
+                            <div class="activity-info">
+                                <i class="far fa-calendar-alt"></i>
+                                <?php echo date('d M Y', strtotime($row['start_date'])); ?>
+                            </div>
+                            <div class="activity-title text-truncate" title="<?php echo $row['title']; ?>">
+                                <?php echo htmlspecialchars($row['title']); ?>
+                            </div>
+                            <p class="text-muted small"
+                                style="height: 40px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                                <?php echo htmlspecialchars($row['description']); ?>
+                            </p>
                             <hr>
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold">45/50 คน</span>
-                                <a href="#" class="manage-link">จัดการกิจกรรม</a>
+                                <span class="fw-bold">
+                                    <i class="fas fa-users me-1 text-primary"></i>
+                                    <?php echo $row['current_registrations']; ?> /
+                                    <?php echo ($row['total_capacity'] ?? 0); ?> คน
+                                </span>
+                                <a href="admin_manage_activity.php?id=<?php echo $row['activity_id']; ?>"
+                                    class="manage-link">
+                                    จัดการกิจกรรม <i class="fas fa-chevron-right ms-1"></i>
+                                </a>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="col">
-                    <div class="activity-card">
-                        <div class="card-img-top-custom" style="background: linear-gradient(45deg, #12c2e9, #c471ed);">
-                            <span class="status-badge status-closed">Closed</span>
-                        </div>
-                        <div class="card-body-custom">
-                            <div class="activity-info"><i class="far fa-calendar-alt"></i> 2023-11-01</div>
-                            <div class="activity-title">อบรม Python for Data Science</div>
-                            <p class="text-muted small">รายละเอียดกิจกรรมคร่าวๆ เพื่อให้นักศึกษาได้ทราบขอบเขต...</p>
-                            <hr>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold">80/80 คน</span>
-                                <a href="#" class="manage-link">จัดการกิจกรรม</a>
-                            </div>
-                        </div>
-                    </div>
+                <?php endwhile; ?>
+                <?php else: ?>
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">ยังไม่มีกิจกรรมในระบบ</p>
                 </div>
-
-                <div class="col">
-                    <div class="activity-card">
-                        <div class="card-img-top-custom" style="background: linear-gradient(45deg, #00b09b, #96c93d);">
-                            <span class="status-badge status-upcoming">Upcoming</span>
-                        </div>
-                        <div class="card-body-custom">
-                            <div class="activity-info"><i class="far fa-calendar-alt"></i> 2023-12-20</div>
-                            <div class="activity-title">Sport Day 2023</div>
-                            <p class="text-muted small">รายละเอียดกิจกรรมคร่าวๆ เพื่อให้นักศึกษาได้ทราบขอบเขต...</p>
-                            <hr>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold">120/500 คน</span>
-                                <a href="#" class="manage-link">จัดการกิจกรรม</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+                <?php endif; ?>
             </div>
+            <br>
         </div>
     </div>
 
-    <script>
+    <style>
+    .btn-purple {
+        background-color: #96a1cd;
+        color: white;
+        border: none;
+        transition: 0.3s;
+    }
 
+    .btn-purple:hover {
+        background-color: #7e89b3;
+        color: white;
+    }
+
+    .bg-purple {
+        background-color: #96a1cd !important;
+    }
+    </style>
+
+    <?php if (isset($_SESSION['status_modal'])): ?>
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg" style="border-radius: 20px; border: none;">
+                <div
+                    class="modal-header <?php echo ($_SESSION['status_modal']['type'] == 'success') ? 'bg-purple' : 'bg-danger'; ?> text-white border-0">
+                    <h5 class="modal-title fw-bold"><?php echo $_SESSION['status_modal']['title']; ?></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <i class="fas <?php echo ($_SESSION['status_modal']['type'] == 'success') ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'; ?> mb-3"
+                        style="font-size: 4rem;"></i>
+                    <h5 class="text-dark"><?php echo $_SESSION['status_modal']['message']; ?></h5>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-purple px-5" data-bs-dismiss="modal">ตกลง</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var myModal = new bootstrap.Modal(document.getElementById('statusModal'));
+        myModal.show();
+    });
     </script>
+    <?php unset($_SESSION['status_modal']); endif; ?>
 
 </body>
 

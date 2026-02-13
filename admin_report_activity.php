@@ -160,31 +160,38 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
 
             <div class="row mb-4">
                 <div class="col-md-4 mb-3">
-                    <div class="stat-card d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-muted">กิจกรรมทั้งหมด</div>
-                            <h3 class="mb-0 fw-bold">24</h3>
+                    <a href="admin_activity.php" class="text-decoration-none text-dark">
+                        <div class="stat-card d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted">กิจกรรมทั้งหมด</div>
+                                <h3 class="mb-0 fw-bold">24</h3>
+                            </div>
+                            <div class="stat-icon bg-primary text-white"><i class="fas fa-calendar-check"></i>
+                            </div>
                         </div>
-                        <div class="stat-icon bg-primary text-white"><i class="fas fa-calendar-check"></i></div>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="stat-card d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-muted small">สมาชิกทั้งหมด</div>
-                            <h3 class="mb-0 fw-bold">1,250</h3>
+                    <a href="admin_user_management.php" class="text-decoration-none text-dark">
+                        <div class="stat-card d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted small">สมาชิกทั้งหมด</div>
+                                <h3 class="mb-0 fw-bold">1,250</h3>
+                            </div>
+                            <div class="stat-icon bg-success text-white"><i class="fas fa-user-friends"></i></div>
                         </div>
-                        <div class="stat-icon bg-success text-white"><i class="fas fa-user-friends"></i></div>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="stat-card d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-muted small">รอการอนุมัติ</div>
-                            <h3 class="mb-0 fw-bold">5</h3>
+                    <a href="admin_approve_activity.php" class="text-decoration-none text-dark">
+                        <div class="stat-card d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted small">รอการอนุมัติ</div>
+                                <h3 class="mb-0 fw-bold">5</h3>
+                            </div>
+                            <div class="stat-icon bg-warning text-white"><i class="fas fa-clock"></i></div>
                         </div>
-                        <div class="stat-icon bg-warning text-white"><i class="fas fa-clock"></i></div>
-                    </div>
+                    </a>
                 </div>
             </div>
 
@@ -225,7 +232,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
                         </div>
 
                         <div class="text-center mt-3">
-                            <a href="#" class="text-decoration-none small">ดูทั้งหมด</a>
+                            <a href="admin_activity.php" class="text-decoration-none small">ดูทั้งหมด</a>
                         </div>
                     </div>
                 </div>

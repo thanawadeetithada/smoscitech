@@ -9,7 +9,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-$stmt = $conn->prepare("SELECT user_id, username, email, first_name, last_name, password, userrole 
+$stmt = $conn->prepare("SELECT user_id, username, email, first_name, last_name, password, userrole, department, academic_year, profile_image
                         FROM users WHERE deleted_at IS NULL");
 $stmt->execute();
 $result = $stmt->get_result();
@@ -286,7 +286,10 @@ $role_names = [
                         <th>นามสกุล</th>
                         <th>ชื่อผู้ใช้งาน</th>
                         <th>Email</th>
+                        <th>สาขาวิชา</th>
+                        <th>ปีการศึกษา</th>
                         <th>สถานะ</th>
+                        <th>รูปโปรไฟล์</th>
                         <th>จัดการ</th>
                     </tr>
                 </thead>
@@ -294,7 +297,6 @@ $role_names = [
                     <?php
     if ($result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
-            // ดึงชื่อภาษาไทยจาก Array mapping ภายในลูป
             $role_key = $row['userrole'];
             $display_name = isset($role_names[$role_key]) ? $role_names[$role_key] : $role_key;
 
@@ -303,7 +305,11 @@ $role_names = [
                     <td>{$row['last_name']}</td>
                     <td>{$row['username']}</td>
                     <td>{$row['email']}</td>
-                    <td>{$display_name}</td> <td class='btn-action1'>
+                    <td>{$row['department']}</td>
+                    <td>{$row['academic_year']}</td>
+                    <td>{$display_name}</td> 
+                    <td><img src='uploads/{$row['profile_image']}' width='50' height='50' class='rounded-circle'></td>
+                    <td class='btn-action1'>
                         <a href='edit_user.php?user_id={$row['user_id']}' class='btn btn-warning btn-sm'>
                             <i class='fa-solid fa-pencil'></i>
                         </a>

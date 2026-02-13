@@ -222,7 +222,7 @@ $row = $result->fetch_assoc();
     <div class="container-wrapper">
         <div class="container">
             <h2>แก้ไขข้อมูลผู้ใช้งาน</h2>
-            <form action="update_user.php" method="POST">
+            <form action="update_user.php" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="user_id" value="<?= $row['user_id'] ?>">
 
                 <div class="row mb-3">
@@ -255,6 +255,47 @@ $row = $result->fetch_assoc();
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-12">
+                        <label for="academic_year" class="form-label">ปีการศึกษา</label>
+                        <input class="form-control" type="text" id="academic_year" name="academic_year"
+                            value="<?= $row['academic_year'] ?>" required>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="department" class="form-label">สาขาวิชา</label>
+                        <select class="form-control" id="department" name="department" required>
+                            <option value="วิทยาการคอมพิวเตอร์"
+                                <?= ($row['department'] == 'วิทยาการคอมพิวเตอร์') ? 'selected' : ''; ?>>
+                                วิทยาการคอมพิวเตอร์</option>
+                            <option value="เทคโนโลยีสารสนเทศ"
+                                <?= ($row['department'] == 'เทคโนโลยีสารสนเทศ') ? 'selected' : ''; ?>>เทคโนโลยีสารสนเทศ
+                            </option>
+                            <option value="นวัตกรรมและธุรกิจอาหาร"
+                                <?= ($row['department'] == 'นวัตกรรมและธุรกิจอาหาร') ? 'selected' : ''; ?>>
+                                นวัตกรรมและธุรกิจอาหาร</option>
+                            <option value="สาธารณสุขศาสตร์"
+                                <?= ($row['department'] == 'สาธารณสุขศาสตร์') ? 'selected' : ''; ?>>สาธารณสุขศาสตร์
+                            </option>
+                            <option value="เคมี (วท.บ.)"
+                                <?= ($row['department'] == 'เคมี (วท.บ.)') ? 'selected' : ''; ?>>เคมี (วท.บ.)
+                            </option>
+                            <option value="วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม"
+                                <?= ($row['department'] == 'วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม') ? 'selected' : ''; ?>>
+                                วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม</option>
+                            <option value="ฟิสิกส์" <?= ($row['department'] == 'ฟิสิกส์') ? 'selected' : ''; ?>>
+                                ฟิสิกส์</option>
+                            <option value="เคมี (ค.บ.)" <?= ($row['department'] == 'เคมี (ค.บ.)') ? 'selected' : ''; ?>>
+                                เคมี (ค.บ.)</option>
+                            <option value="ชีววิทยา" <?= ($row['department'] == 'ชีววิทยา') ? 'selected' : ''; ?>>
+                                ชีววิทยา</option>
+                            <option value="คณิตศาสตร์ประยุกต์"
+                                <?= ($row['department'] == 'คณิตศาสตร์ประยุกต์') ? 'selected' : ''; ?>>
+                                คณิตศาสตร์ประยุกต์</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
                         <label for="userrole" class="form-label">สถานะ</label>
                         <select class="form-control" id="userrole" name="userrole" required>
                             <option value="">-- เลือกประเภท --</option>
@@ -271,7 +312,24 @@ $row = $result->fetch_assoc();
                         </select>
                     </div>
                 </div>
-
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="profile_image" class="form-label">รูปโปรไฟล์</label>
+                        <input type="file" id="profile_image" name="profile_image" class="form-control" accept="image/*"
+                            onchange="previewImage(event)">
+                            <br>
+                        <div class="mb-2 text-center">
+                            <?php 
+                    $image_src = "bg/default-profile.png";
+                    if (!empty($row['profile_image']) && file_exists("uploads/" . $row['profile_image'])) {
+                        $image_src = "uploads/" . $row['profile_image'];
+                    }
+                ?>
+                            <img id="preview" src="<?= $image_src ?>" alt="Preview"
+                                style="width: 150px; height: 150px; object-fit: cover; border-radius: 50%; border: 2px solid #ddd; display: inline-block;">
+                        </div>
+                    </div>
+                </div>
                 <br>
                 <div class="d-flex text-center btn-group-responsive mt-4">
                     <button type="submit" class="btn btn-purple">บันทึก</button>
@@ -319,6 +377,22 @@ $row = $result->fetch_assoc();
             window.location.href = "admin_user_management.php";
         });
     });
+
+    function previewImage(event) {
+        const reader = new FileReader();
+        const imageField = document.getElementById("preview");
+
+        reader.onload = function() {
+            if (reader.readyState === 2) {
+                imageField.src = reader.result;
+                imageField.style.display = "inline-block";
+            }
+        }
+
+        if (event.target.files[0]) {
+            reader.readAsDataURL(event.target.files[0]);
+        }
+    }
     </script>
 </body>
 
