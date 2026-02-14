@@ -136,7 +136,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
         <div class="row justify-content-center">
             <div class="col-lg-10">
                 <div class="d-flex align-items-center mb-4">
-                    <a href="admin_activity.php" class="btn btn-light me-3"><i class="fas fa-arrow-left"></i></a>
+                    <a href="admin_activity.php" class="btn me-3"><i class="fas fa-arrow-left"></i></a>
                     <h3 class="fw-bold mb-0">สร้างกิจกรรมใหม่</h3>
                 </div>
 

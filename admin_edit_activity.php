@@ -143,7 +143,7 @@ $tasks_result = $stmt_tasks->get_result();
         <div class="row justify-content-center">
             <div class="col-lg-10">
                 <div class="d-flex align-items-center mb-4">
-                    <a href="admin_activity.php" class="btn btn-light me-3"><i
+                    <a href="admin_activity.php" class="btn me-3"><i
                             class="fas fa-arrow-left"></i></a>
                     <h3 class="fw-bold mb-0">แก้ไขข้อมูลกิจกรรม</h3>
                 </div>
@@ -256,7 +256,7 @@ $tasks_result = $stmt_tasks->get_result();
                     </div>
 
                     <div class="text-center">
-                        <a href="admin_manage_activity.php?id=<?php echo $activity_id; ?>"
+                        <a href="admin_activity.php"
                             class="btn btn-outline-secondary px-4 me-2">ยกเลิก</a>
                         <button type="submit" class="btn btn-primary px-5 shadow">บันทึกการเปลี่ยนแปลง</button>
                     </div>

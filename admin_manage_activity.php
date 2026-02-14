@@ -162,6 +162,11 @@ $registrations = $stmt_reg->get_result();
         font-size: 40px;
         margin-bottom: 20px;
     }
+
+    .flex-container {
+        display: flex;
+        align-items: baseline;
+    }
     </style>
 </head>
 
@@ -204,17 +209,17 @@ $registrations = $stmt_reg->get_result();
     <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4 header-flex">
             <div>
-                <a href="admin_activity.php" class="btn btn-light mb-2"><i class="fas fa-arrow-left"></i>
-                </a>
+                <div class="flex-container">
+                    <a href="admin_activity.php" class="btn mb-2 me-3"><i class="fas fa-arrow-left"></i>
+                    </a>
+                    <h5 class="offcanvas-title">อนุมัติกิจกกรม</h5>
+                </div>
                 <h2 class="fw-bold mb-1"><?php echo htmlspecialchars($activity['title']); ?></h2>
                 <span class="badge bg-<?php echo ($activity['status'] == 'open') ? 'success' : 'danger'; ?>">
                     สถานะ: <?php echo ucfirst($activity['status']); ?>
                 </span>
             </div>
             <div class="header-buttons">
-                <a href="admin_edit_activity.php?id=<?php echo $activity_id; ?>" class="btn btn-warning shadow-sm">
-                    <i class="fas fa-edit"></i> แก้ไข
-                </a>
                 <button class="btn btn-danger shadow-sm" onclick="prepareDelete(<?php echo $activity_id; ?>)">
                     <i class="fas fa-trash"></i> ลบ
                 </button>
