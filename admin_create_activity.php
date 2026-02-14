@@ -24,6 +24,20 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
         background-color: #f8f9fc;
     }
 
+    .nav-item a {
+        color: white;
+        margin-right: 1rem;
+    }
+
+    .navbar {
+        padding: 20px;
+    }
+
+    .nav-link:hover {
+        color: white;
+    }
+
+
     .card {
         border: none;
         border-radius: 15px;
@@ -37,7 +51,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
 
     .task-row {
         background: #f1f3f9;
-        padding: 15px;
+        padding: 10px;
         border-radius: 10px;
         margin-bottom: 10px;
         position: relative;
@@ -83,19 +97,53 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
 </head>
 
 <body>
+    <nav class="navbar navbar-dark bg-dark px-3">
+        <div class="d-flex w-100 justify-content-between align-items-center">
+            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
+                style="cursor: pointer;"></i>
+            <div class="nav-item">
+                <a class="nav-link text-white" href="logout.php"><i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
+            </div>
+        </div>
+    </nav>
 
-    <div class="container py-5">
+    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarMenu">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title">รายการ</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="list-unstyled">
+                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
+                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
+                <li><a href="admin_e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-address-book"></i> E-Portfolio</a></li>
+                <li><a href="admin_transcript.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-file-lines"></i> Transcript</a></li>
+                <li><a href="admin_approve_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-calendar-check"></i> อนุมัติกิจกรรม</a></li>
+                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container py-4">
         <div class="row justify-content-center">
             <div class="col-lg-10">
                 <div class="d-flex align-items-center mb-4">
                     <a href="admin_activity.php" class="btn btn-light me-3"><i class="fas fa-arrow-left"></i></a>
-                    <h2 class="fw-bold mb-0">สร้างกิจกรรมใหม่</h2>
+                    <h3 class="fw-bold mb-0">สร้างกิจกรรมใหม่</h3>
                 </div>
 
                 <form action="process_create_activity.php" method="POST" enctype="multipart/form-data">
                     <div class="card mb-4">
                         <div class="card-body p-4">
-                            <h5 class="card-title mb-4"><i class="fas fa-info-circle me-2"></i>ข้อมูลหลักของกิจกรรม</h5>
+                            <h5 class="card-title mb-4"><i class="fas fa-info-circle me-2 text-primary"></i>ข้อมูลทั่วไป</h5>
                             <div class="row g-3">
                                 <div class="col-md-12">
                                     <label class="form-label">รูปหน้าปกกิจกรรม (ถ้ามี)</label>
@@ -166,8 +214,8 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
                         </div>
                     </div>
 
-                    <div class="text-end">
-                        <button type="reset" class="btn btn-light px-4">ล้างข้อมูล</button>
+                    <div class="text-center">
+                        <button type="reset" class="btn btn-outline-secondary px-4">ล้างข้อมูล</button>
                         <button type="submit" class="btn btn-primary px-5 shadow">บันทึกและสร้างกิจกรรม</button>
                     </div>
                 </form>

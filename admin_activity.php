@@ -61,7 +61,7 @@ $result = $conn->query($sql);
     }
 
     .main-content {
-        margin: 30px 50px;
+        margin: 30px;
         padding: 20px;
     }
 
@@ -81,10 +81,6 @@ $result = $conn->query($sql);
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         background: white;
         height: 100%;
-    }
-
-    .activity-card:hover {
-        transform: translateY(-5px);
     }
 
     .card-img-top-custom {
@@ -135,10 +131,18 @@ $result = $conn->query($sql);
 
     .manage-link {
         text-decoration: none;
-        color: #4e73df;
+        color: #fff;
         font-weight: bold;
         float: right;
     }
+
+    .edit-link {
+        text-decoration: none;
+        color: #000;
+        font-weight: bold;
+        float: right;
+    }
+
 
     @media (max-width: 768px) {
         .btn-create-mobile {
@@ -244,7 +248,8 @@ $result = $conn->query($sql);
         ?>
                 <div class="col">
                     <div class="activity-card">
-                        <div class="card-img-top-custom" style="<?php echo $cover_img ? "background: url('$cover_img') center/cover;" : "background: $current_gradient;"; ?>">
+                        <div class="card-img-top-custom"
+                            style="<?php echo $cover_img ? "background: url('$cover_img') center/cover;" : "background: $current_gradient;"; ?>">
                             <span class="status-badge <?php echo $status_class; ?>">
                                 <?php echo $status_text; ?>
                             </span>
@@ -268,10 +273,16 @@ $result = $conn->query($sql);
                                     <?php echo $row['current_registrations']; ?> /
                                     <?php echo ($row['total_capacity'] ?? 0); ?> คน
                                 </span>
-                                <a href="admin_manage_activity.php?id=<?php echo $row['activity_id']; ?>"
-                                    class="manage-link">
-                                    จัดการกิจกรรม <i class="fas fa-chevron-right ms-1"></i>
-                                </a>
+                                <div class="redirect-page d-flex gap-2">
+                                    <a href="admin_edit_activity.php?id=<?php echo $row['activity_id']; ?>"
+                                        class="edit-link btn btn-warning">
+                                        แก้ไข</i>
+                                    </a>
+                                    <a href="admin_manage_activity.php?id=<?php echo $row['activity_id']; ?>"
+                                        class="manage-link btn btn-primary ">
+                                        จัดการ</i>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

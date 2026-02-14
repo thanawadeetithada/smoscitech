@@ -54,7 +54,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     }
 
     .main-content {
-        margin: 30px 50px;
+        margin: 30px;
         padding: 20px;
     }
 
@@ -156,7 +156,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
 
     <div class="main-content">
         <div class="container-fluid">
-            <h3 class="mb-1">ภาพรวมกิจกรรมและการดำเนินงานของสโมสร</h3><br>
+            <h3 class="fw-bold mb-1">ภาพรวมกิจกรรมและการดำเนินงานของสโมสร</h3><br>
 
             <div class="row mb-4">
                 <div class="col-md-4 mb-3">
