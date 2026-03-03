@@ -9,17 +9,17 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-$stmt = $conn->prepare("SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, academic_year, year_level, profile_image
+$stmt = $conn->prepare("SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, academic_year, year_level,profile_image
                         FROM users WHERE deleted_at IS NULL");
 $stmt->execute();
 $result = $stmt->get_result();
 
-$role_names = [
-    'executive'         => 'ผู้บริหาร',
-    'academic_officer'  => 'นักวิชาการศึกษา',
-    'club_president'    => 'นายก/รองนายกสโมสรนักศึกษา',
-    'club_member'       => 'สมาชิกสโมสรนักศึกษาฯ'
-];
+$year_query = $conn->query("SELECT DISTINCT academic_year FROM users WHERE deleted_at IS NULL ORDER BY academic_year DESC");
+$academic_years = [];
+while($y = $year_query->fetch_assoc()) {
+    $academic_years[] = $y['academic_year'];
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -31,7 +31,7 @@ $role_names = [
     <meta name="apple-mobile-web-app-title" content="App Premium">
     <meta name="application-name" content="App Premium">
     <meta name="theme-color" content="#96a1cd">
-    <title>หน้าข้อมูลผู้ใช้งาน</title>
+    <title>หน้า E-Poartfolio / Transcript</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -262,16 +262,34 @@ $role_names = [
 
     <div class="card">
         <div class="header-card">
-            <h3 class="text-left">รายชื่อ</h3>
+            <h3 class="text-left">ข้อมูล E-Poartfolio / Transcript</h3>
             <div class="search-add">
-                <div class="tab-func">
-                    <button type="button" class="btn btn-primary"
-                        onclick="window.location.href='add_user_management.php'">
-                        <i class="fa-solid fa-file-medical"></i> เพิ่มรายชื่อ
-                    </button>
-                </div>
-                <div class="tab-func">
-                    <input type="text" class="form-control search-name" placeholder="ค้นหา...">
+                <div class="tab-func flex-wrap">
+                    <input type="text" class="form-control search-name me-2 mb-2" placeholder="ค้นหาชื่อ/รหัส..."
+                        style="width: 200px;">
+
+                    <select id="filterAcademicYear" class="form-select me-2 mb-2" style="width: auto;">
+                        <option value="">ทุกปีการศึกษา</option>
+                        <?php foreach ($academic_years as $year): ?>
+                        <option value="<?= htmlspecialchars($year) ?>"><?= htmlspecialchars($year) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <select id="filterDepartment" class="form-select me-2 mb-2" style="width: auto;">
+                        <option value="">ทุกสาขาวิชา</option>
+                        <?php 
+                $depts = ["วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "นวัตกรรมและธุรกิจอาหาร", "สาธารณสุขศาสตร์", "เคมี (วท.บ.)", "วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม", "ฟิสิกส์", "เคมี (ค.บ.)", "ชีววิทยา", "คณิตศาสตร์ประยุกต์"];
+                foreach ($depts as $dept) echo "<option value='$dept'>$dept</option>";
+            ?>
+                    </select>
+
+                    <select id="filterYearLevel" class="form-select mb-2" style="width: auto;">
+                        <option value="">ทุกชั้นปี</option>
+                        <option value="1">ชั้นปีที่ 1</option>
+                        <option value="2">ชั้นปีที่ 2</option>
+                        <option value="3">ชั้นปีที่ 3</option>
+                        <option value="4">ชั้นปีที่ 4</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -284,11 +302,9 @@ $role_names = [
                         <th>ชื่อ</th>
                         <th>นามสกุล</th>
                         <th>Email</th>
+                        <th>ปีการศึกษา</th>
                         <th>สาขาวิชา</th>
                         <th>ชั้นปีการศึกษา</th>
-                        <th>ปีการศึกษา</th>
-                        <th>สถานะ</th>
-                        <th>รูปโปรไฟล์</th>
                         <th>จัดการ</th>
                     </tr>
                 </thead>
@@ -304,18 +320,17 @@ $role_names = [
                     <td>{$row['first_name']}</td>
                     <td>{$row['last_name']}</td>
                     <td>{$row['email']}</td>
+                    <td>{$row['academic_year']}</td>
                     <td>{$row['department']}</td>
                     <td>{$row['year_level']}</td>
-                    <td>{$row['academic_year']}</td>
-                    <td>{$display_name}</td> 
-                    <td><img src='uploads/{$row['profile_image']}' width='50' height='50' class='rounded-circle'></td>
+                   
                     <td class='btn-action1'>
-                        <a href='edit_user.php?user_id={$row['user_id']}' class='btn btn-warning btn-sm'>
-                            <i class='fa-solid fa-pencil'></i>
+                        <a href='admin_detail_E-portfolio.php?user_id={$row['user_id']}&action=portfolio' class='btn btn-outline-primary btn-sm'>
+                            <i class='fa-solid fa-address-card'></i> E-portfolio
                         </a>
                         &nbsp;&nbsp;
-                        <a href='#' class='btn btn-danger btn-sm delete-btn' data-id='{$row['user_id']}'>
-                            <i class='fa-regular fa-trash-can'></i>
+                        <a href='admin_detail_transcript.php?user_id={$row['user_id']}&action=transcript' class='btn btn-outline-warning btn-sm'>
+                            <i class='fa-solid fa-file-lines'></i> Transcript
                         </a>
                     </td>
                 </tr>";
@@ -371,16 +386,36 @@ $role_names = [
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
     $(document).ready(function() {
-        $(".search-name").on("keyup", function() {
-            var value = $(this).val().toLowerCase();
-            var visibleRows = 0;
-            $("#memberTable tbody tr").each(function() {
-                if ($(this).attr("id") === "noResult" || $(this).find(".modal-dialog").length >
-                    0) return;
+        function filterTable() {
+            var searchTerm = $(".search-name").val().toLowerCase();
+            var academicYear = $("#filterAcademicYear").val();
+            var department = $("#filterDepartment").val();
+            var yearLevel = $("#filterYearLevel").val();
 
-                var match = $(this).text().toLowerCase().indexOf(value) > -1;
-                $(this).toggle(match);
-                if (match) visibleRows++;
+            var visibleRows = 0;
+
+            $("#memberTable tbody tr").each(function() {
+                if ($(this).attr("id") === "noResult") return;
+
+                // ดึงค่าจาก TD (Index 4=ปีการศึกษา, 5=สาขา, 6=ชั้นปี)
+                var rowText = $(this).text().toLowerCase();
+                var rowAcademicYear = $(this).find("td:eq(4)").text().trim();
+                var rowDepartment = $(this).find("td:eq(5)").text().trim();
+                var rowYearLevel = $(this).find("td:eq(6)").text().trim();
+
+                // ตรวจสอบเงื่อนไข
+                var matchSearch = rowText.indexOf(searchTerm) > -1;
+                var matchYear = (academicYear === "" || rowAcademicYear === academicYear);
+                var matchDept = (department === "" || rowDepartment === department);
+                // ตรวจสอบชั้นปี (เช็คว่ามีตัวเลขในข้อความ เช่น "1" ตรงกับ "ชั้นปีที่ 1" หรือไม่)
+                var matchLevel = (yearLevel === "" || rowYearLevel.includes(yearLevel));
+
+                if (matchSearch && matchYear && matchDept && matchLevel) {
+                    $(this).show();
+                    visibleRows++;
+                } else {
+                    $(this).hide();
+                }
             });
 
             if (visibleRows === 0) {
@@ -388,41 +423,11 @@ $role_names = [
             } else {
                 $("#noResult").hide();
             }
-        });
+        }
 
-        let deleteUserId = null;
-
-        $(".delete-btn").click(function(e) {
-            e.preventDefault();
-            deleteUserId = $(this).data("id");
-            $("#confirmDeleteModal").modal("show");
-        });
-
-        $("#confirmDeleteBtn").click(function() {
-            if (deleteUserId) {
-                $.ajax({
-                    url: "delete_user.php",
-                    type: "POST",
-                    data: {
-                        user_id: deleteUserId
-                    },
-                    success: function(response) {
-                        $("#confirmDeleteModal").modal("hide");
-                        $("a.delete-btn[data-id='" + deleteUserId + "']").closest("tr")
-                            .remove();
-                        $("#alertMessage").text(response);
-                        $("#alertModal").modal("show");
-                        deleteUserId = null;
-                        if ($("#memberTable tbody tr").length === 0) {
-                            $("#noResult").show();
-                        }
-                    },
-                    error: function() {
-                        alert("เกิดข้อผิดพลาดในการลบข้อมูล");
-                    }
-                });
-            }
-        });
+        // เมื่อมีการเปลี่ยนแปลงข้อมูลในทุก Input/Select ให้เรียกใช้ฟังก์ชัน
+        $(".search-name").on("keyup", filterTable);
+        $("#filterAcademicYear, #filterDepartment, #filterYearLevel").on("change", filterTable);
     });
     </script>
 

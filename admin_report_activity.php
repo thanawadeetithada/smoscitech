@@ -9,6 +9,41 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
+// 1. นับจำนวนกิจกรรมทั้งหมด
+$sql_activities = "SELECT COUNT(*) as total FROM activities";
+$result_activities = $conn->query($sql_activities);
+$total_activities = $result_activities ? $result_activities->fetch_assoc()['total'] : 0;
+
+// 2. นับจำนวนสมาชิกทั้งหมด
+$sql_users = "SELECT COUNT(*) as total FROM users";
+$result_users = $conn->query($sql_users);
+$total_users = $result_users ? $result_users->fetch_assoc()['total'] : 0;
+
+// 3. นับจำนวนการลงทะเบียนที่รอการอนุมัติ (Pending)
+$sql_pending = "SELECT COUNT(*) as total FROM activity_registrations WHERE registration_status = 'pending'";
+$result_pending = $conn->query($sql_pending);
+$total_pending = $result_pending ? $result_pending->fetch_assoc()['total'] : 0;
+
+// 4. ดึงข้อมูลกิจกรรมเร็วๆ นี้ (ที่สถานะยังเปิดอยู่ 3 รายการ)
+$sql_upcoming = "SELECT title, start_date, hours_count FROM activities WHERE status = 'open' ORDER BY start_date ASC LIMIT 3";
+$result_upcoming = $conn->query($sql_upcoming);
+
+// 5. ดึงข้อมูลสำหรับกราฟ (ยอดผู้ลงทะเบียน 5 กิจกรรมล่าสุด)
+$sql_chart = "SELECT a.title, COUNT(ar.registration_id) as total_reg 
+              FROM activities a 
+              LEFT JOIN activity_registrations ar ON a.activity_id = ar.activity_id 
+              GROUP BY a.activity_id 
+              ORDER BY a.start_date DESC LIMIT 5";
+$result_chart = $conn->query($sql_chart);
+
+$chart_labels = [];
+$chart_data = [];
+if ($result_chart && $result_chart->num_rows > 0) {
+    while ($row = $result_chart->fetch_assoc()) {
+        $chart_labels[] = $row['title'];
+        $chart_data[] = $row['total_reg'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -56,17 +91,6 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     .main-content {
         margin: 30px;
         padding: 20px;
-    }
-
-    .topbar {
-        background: white;
-        padding: 15px 30px;
-        margin-bottom: 30px;
-        border-radius: 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 .15rem 1.75rem 0 rgba(58, 59, 69, .05);
     }
 
     .stat-card {
@@ -124,7 +148,9 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
             <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
                 style="cursor: pointer;"></i>
             <div class="nav-item">
-                <a class="nav-link text-white" href="logout.php"><i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
+                <a class="nav-link text-white" href="logout.php">
+                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'ตรวจสอบไม่พบ Role'; ?> ]
+                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
     </nav>
@@ -140,12 +166,8 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
                             class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
                 <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio</a></li>
-                <li><a href="admin_transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-file-lines"></i> Transcript</a></li>
-                <li><a href="admin_approve_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-calendar-check"></i> อนุมัติกิจกรรม</a></li>
+                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
                 <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
                 <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
@@ -164,7 +186,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
                         <div class="stat-card d-flex align-items-center justify-content-between">
                             <div>
                                 <div class="text-muted">กิจกรรมทั้งหมด</div>
-                                <h3 class="mb-0 fw-bold">24</h3>
+                                <h3 class="mb-0 fw-bold"><?php echo number_format($total_activities); ?></h3>
                             </div>
                             <div class="stat-icon bg-primary text-white"><i class="fas fa-calendar-check"></i>
                             </div>
@@ -176,22 +198,22 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
                         <div class="stat-card d-flex align-items-center justify-content-between">
                             <div>
                                 <div class="text-muted small">สมาชิกทั้งหมด</div>
-                                <h3 class="mb-0 fw-bold">1,250</h3>
+                                <h3 class="mb-0 fw-bold"><?php echo number_format($total_users); ?></h3>
                             </div>
                             <div class="stat-icon bg-success text-white"><i class="fas fa-user-friends"></i></div>
                         </div>
                     </a>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <a href="admin_approve_activity.php" class="text-decoration-none text-dark">
+                    <div class="text-decoration-none text-dark">
                         <div class="stat-card d-flex align-items-center justify-content-between">
                             <div>
                                 <div class="text-muted small">รอการอนุมัติ</div>
-                                <h3 class="mb-0 fw-bold">5</h3>
+                                <h3 class="mb-0 fw-bold"><?php echo number_format($total_pending); ?></h3>
                             </div>
                             <div class="stat-icon bg-warning text-white"><i class="fas fa-clock"></i></div>
                         </div>
-                    </a>
+                    </div>
                 </div>
             </div>
 
@@ -199,7 +221,8 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
                 <div class="col-lg-8 mb-4">
                     <div class="stat-card">
                         <h6 class="fw-bold mb-4"><i class="fas fa-chart-line text-primary me-2"></i>
-                            สถิติการเข้าร่วมกิจกรรม (ล่าสุด)</h6>
+                            สถิติการเข้าร่วมกิจกรรม (5 ล่าสุด)</h6>
+                        <canvas id="activityChart" style="max-height: 300px;"></canvas>
                     </div>
                 </div>
 
@@ -207,29 +230,26 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
                     <div class="stat-card">
                         <h6 class="fw-bold mb-3">กิจกรรมเร็วๆ นี้</h6>
 
-                        <div class="event-item">
-                            <div class="event-date">OCT<small>15</small></div>
-                            <div>
-                                <div class="fw-bold small">ค่ายอาสาพัฒนาชนบท</div>
-                                <div class="text-muted" style="font-size: 12px;">บำเพ็ญประโยชน์</div>
-                            </div>
-                        </div>
-
-                        <div class="event-item">
-                            <div class="event-date">NOV<small>1</small></div>
-                            <div>
-                                <div class="fw-bold small">อบรม Python for Data Science</div>
-                                <div class="text-muted" style="font-size: 12px;">วิชาการ</div>
-                            </div>
-                        </div>
-
-                        <div class="event-item">
-                            <div class="event-date">DEC<small>20</small></div>
-                            <div>
-                                <div class="fw-bold small">Sport Day 2023</div>
-                                <div class="text-muted" style="font-size: 12px;">นันทนาการ</div>
-                            </div>
-                        </div>
+                        <?php 
+                        if ($result_upcoming && $result_upcoming->num_rows > 0) {
+                            while ($row = $result_upcoming->fetch_assoc()) {
+                                $date_obj = strtotime($row['start_date']);
+                                $month = strtoupper(date('M', $date_obj)); // เดือนแบบย่อภาษาอังกฤษ
+                                $day = date('d', $date_obj); // วันที่
+                        ?>
+                                <div class="event-item">
+                                    <div class="event-date"><?php echo $month; ?><small><?php echo $day; ?></small></div>
+                                    <div>
+                                        <div class="fw-bold small"><?php echo htmlspecialchars($row['title']); ?></div>
+                                        <div class="text-muted" style="font-size: 12px;"><?php echo $row['hours_count']; ?> ชั่วโมง</div>
+                                    </div>
+                                </div>
+                        <?php 
+                            }
+                        } else {
+                            echo '<div class="text-center text-muted mt-4"><small>ยังไม่มีกิจกรรมเร็วๆ นี้</small></div>';
+                        }
+                        ?>
 
                         <div class="text-center mt-3">
                             <a href="admin_activity.php" class="text-decoration-none small">ดูทั้งหมด</a>
@@ -241,9 +261,45 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     </div>
 
     <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            
+            // ข้อมูลจาก PHP
+            const labels = <?php echo json_encode($chart_labels); ?>;
+            const dataCounts = <?php echo json_encode($chart_data); ?>;
 
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'จำนวนผู้ลงทะเบียน (คน)',
+                        data: dataCounts,
+                        backgroundColor: '#4e73df',
+                        borderRadius: 5,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        });
     </script>
 
 </body>
-
 </html>

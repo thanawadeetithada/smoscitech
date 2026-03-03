@@ -143,7 +143,6 @@ $result = $conn->query($sql);
         float: right;
     }
 
-
     @media (max-width: 768px) {
         .btn-create-mobile {
             position: fixed;
@@ -155,6 +154,22 @@ $result = $conn->query($sql);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
     }
+
+    .btn-purple {
+        background-color: #96a1cd;
+        color: white;
+        border: none;
+        transition: 0.3s;
+    }
+
+    .btn-purple:hover {
+        background-color: #7e89b3;
+        color: white;
+    }
+
+    .bg-purple {
+        background-color: #96a1cd !important;
+    }
     </style>
 </head>
 
@@ -164,7 +179,9 @@ $result = $conn->query($sql);
             <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
                 style="cursor: pointer;"></i>
             <div class="nav-item">
-                <a class="nav-link text-white" href="logout.php"><i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
+                <a class="nav-link text-white" href="logout.php">
+                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'ตรวจสอบไม่พบ Role'; ?> ]
+                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
     </nav>
@@ -180,12 +197,8 @@ $result = $conn->query($sql);
                             class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
                 <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio</a></li>
-                <li><a href="admin_transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-file-lines"></i> Transcript</a></li>
-                <li><a href="admin_approve_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-calendar-check"></i> อนุมัติกิจกรรม</a></li>
+                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
                 <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
                 <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
@@ -212,15 +225,16 @@ $result = $conn->query($sql);
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0"><i
                                     class="fa fa-search text-muted"></i></span>
-                            <input type="text" class="form-control border-start-0" placeholder="ค้นหากิจกรรม...">
+                            <input type="text" id="searchInput" class="form-control border-start-0"
+                                placeholder="ค้นหากิจกรรม (ชื่อกิจกรรม)...">
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <select class="form-select">
-                            <option selected>ทุกสถานะ</option>
-                            <option>Open</option>
-                            <option>Closed</option>
-                            <option>Upcoming</option>
+                        <select id="statusFilter" class="form-select">
+                            <option value="all" selected>ทุกสถานะ</option>
+                            <option value="Open">เปิดรับ</option>
+                            <option value="Closed">ปิดรับ</option>
+                            <option value="Finished">เสร็จสิ้น</option>
                         </select>
                     </div>
                 </div>
@@ -246,7 +260,7 @@ $result = $conn->query($sql);
             ];
             $current_gradient = $gradients[$row['activity_id'] % 4];
         ?>
-                <div class="col">
+                <div class="col activity-item" data-status="<?php echo $status_text; ?>">
                     <div class="activity-card">
                         <div class="card-img-top-custom"
                             style="<?php echo $cover_img ? "background: url('$cover_img') center/cover;" : "background: $current_gradient;"; ?>">
@@ -289,33 +303,15 @@ $result = $conn->query($sql);
                 </div>
                 <?php endwhile; ?>
                 <?php else: ?>
-                <div class="col-12 text-center py-5">
-                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">ยังไม่มีกิจกรรมในระบบ</p>
+                <div class="col-12 w-100 d-flex flex-column justify-content-center align-items-center py-5 mt-5">
+                    <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted fw-bold">ยังไม่มีกิจกรรมในระบบ</h5>
                 </div>
                 <?php endif; ?>
             </div>
             <br>
         </div>
     </div>
-
-    <style>
-    .btn-purple {
-        background-color: #96a1cd;
-        color: white;
-        border: none;
-        transition: 0.3s;
-    }
-
-    .btn-purple:hover {
-        background-color: #7e89b3;
-        color: white;
-    }
-
-    .bg-purple {
-        background-color: #96a1cd !important;
-    }
-    </style>
 
     <?php if (isset($_SESSION['status_modal'])): ?>
     <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
@@ -345,6 +341,42 @@ $result = $conn->query($sql);
     </script>
     <?php unset($_SESSION['status_modal']); endif; ?>
 
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const activityItems = document.querySelectorAll('.activity-item');
+
+        function filterActivities() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedStatus = statusFilter.value;
+
+            activityItems.forEach(item => {
+                // ดึงชื่อกิจกรรมจากการ์ด
+                const titleElement = item.querySelector('.activity-title');
+                const titleText = titleElement ? titleElement.innerText.toLowerCase() : '';
+
+                // ดึงสถานะจากการ์ด
+                const itemStatus = item.getAttribute('data-status');
+
+                // เช็คเงื่อนไขว่าตรงกับที่ค้นหาไหม
+                const matchesSearch = titleText.includes(searchTerm);
+                const matchesStatus = (selectedStatus === 'all') || (itemStatus === selectedStatus);
+
+                // ถ้าตรงทั้งคำค้นหาและสถานะ ให้แสดงผล (block) ถ้าไม่ให้ซ่อน (none)
+                if (matchesSearch && matchesStatus) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // เมื่อมีการพิมพ์ในช่องค้นหา หรือ เปลี่ยน Dropdown ให้เรียกฟังก์ชันกรองข้อมูล
+        searchInput.addEventListener('keyup', filterActivities);
+        statusFilter.addEventListener('change', filterActivities);
+    });
+    </script>
 </body>
 
 </html>

@@ -17,14 +17,16 @@ $profile_image = "default.png";
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $first_name = $_POST['first_name'];
     $last_name = $_POST['last_name'];
-    $username = $_POST['username'];
+    $idstudent = $_POST['idstudent'];
     $email = $_POST['email'];
     $password = $_POST['password'];
     $confirmpassword = $_POST['confirmpassword'];
     $academic_year = $_POST['academic_year'];
+    $year_level = $_POST['year_level'];
     $department = $_POST['department'];
-    $userrole = 'club_member';
-if (isset($_POST['existing_profile_image'])) {
+    $userrole = $_POST['userrole'];
+    
+    if (isset($_POST['existing_profile_image'])) {
         $profile_image = $_POST['existing_profile_image'];
     }
     
@@ -43,7 +45,7 @@ if (isset($_POST['existing_profile_image'])) {
         }
 
         if (empty($error_message)) {
-            $new_filename = $username . "_" . time() . "." . $ext;
+            $new_filename = $idstudent . "_" . time() . "." . $ext;
             if (!is_dir('uploads')) { mkdir('uploads', 0777, true); }
             
             if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], "uploads/" . $new_filename)) {
@@ -60,23 +62,23 @@ if (isset($_POST['existing_profile_image'])) {
     }
 
     if (empty($error_message)) {
-    $check_duplicate_sql = "SELECT email, username 
+        $check_duplicate_sql = "SELECT email, idstudent 
                         FROM users 
-                        WHERE (email = ? OR username = ?) 
+                        WHERE (email = ? OR idstudent = ?) 
                         AND deleted_at IS NULL
                         LIMIT 1";
         if ($stmt = $conn->prepare($check_duplicate_sql)) {
-            $stmt->bind_param("ss", $email, $username);
+            $stmt->bind_param("ss", $email, $idstudent);
             $stmt->execute();
             $stmt->store_result();
             if ($stmt->num_rows > 0) {
-                $stmt->bind_result($existing_email, $existing_username);
+                $stmt->bind_result($existing_email, $existing_idstudent);
                 $stmt->fetch();
-                if ($email === $existing_email && $username === $existing_username) {
+                if ($email === $existing_email && $idstudent === $existing_idstudent) {
                     $error_message = "อีเมลและชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว";
                 } elseif ($email === $existing_email) {
                     $error_message = "อีเมลนี้ถูกใช้ไปแล้ว กรุณาใช้อีเมลอื่น";
-                } elseif ($username === $existing_username) {
+                } elseif ($idstudent === $existing_idstudent) {
                     $error_message = "ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว กรุณาใช้ชื่อผู้ใช้งานอื่น";
                 }
             }
@@ -88,12 +90,15 @@ if (isset($_POST['existing_profile_image'])) {
 
     if (empty($error_message)) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $sql = "INSERT INTO users (first_name, last_name, email, username, password, academic_year, department, profile_image, userrole) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        // เพิ่ม year_level เข้าไปใน SQL
+        $sql = "INSERT INTO users (first_name, last_name, email, idstudent, password, academic_year, year_level, department, profile_image, userrole) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try {
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sssssssss", $first_name, $last_name, $email, $username, $hashed_password, $academic_year, $department, $profile_image, $userrole);
+            // เพิ่มตัวแปร $year_level และเปลี่ยน "s" ให้ครบ 10 ตัว
+            $stmt->bind_param("ssssssssss", $first_name, $last_name, $email, $idstudent, $hashed_password, $academic_year, $year_level, $department, $profile_image, $userrole);
             $stmt->execute();
             $registration_success = true;
             $stmt->close();
@@ -102,9 +107,9 @@ if (isset($_POST['existing_profile_image'])) {
                  $error_message = "ชื่อผู้ใช้งานหรืออีเมลนี้ถูกใช้ไปแล้ว";
             } else {
                  $error_message = "เกิดข้อผิดพลาด: " . $e->getMessage();
+            }
         }
     }
-}
     $conn->close();
 }
 ?>
@@ -287,12 +292,8 @@ if (isset($_POST['existing_profile_image'])) {
                             class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
                 <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio</a></li>
-                <li><a href="admin_transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-file-lines"></i> Transcript</a></li>
-                <li><a href="admin_approve_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-calendar-check"></i> อนุมัติกิจกรรม</a></li>
+                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
                 <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
                 <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
@@ -304,7 +305,7 @@ if (isset($_POST['existing_profile_image'])) {
         <div class="container">
             <h2>เพิ่มข้อมูล</h2>
             <?php if (!empty($error_message)): ?>
-            <div class="alert alert-danger" role="alert">
+            <div class="alert alert-danger text-center" role="alert">
                 <?php echo $error_message; ?>
             </div>
             <?php endif; ?>
@@ -329,10 +330,10 @@ if (isset($_POST['existing_profile_image'])) {
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-12">
-                        <label for="username" class="form-label">ชื่อผู้ใช้งาน</label>
-                        <input type="text" id="username" name="username" placeholder="ชื่อผู้ใช้งาน" required
+                        <label for="idstudent" class="form-label">รหัสนักศึกษา</label>
+                        <input type="text" id="idstudent" name="idstudent" placeholder="รหัสนักศึกษา" required
                             class="form-control"
-                            value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
+                            value="<?php echo isset($_POST['idstudent']) ? htmlspecialchars($_POST['idstudent']) : ''; ?>">
 
                     </div>
                 </div>
@@ -344,6 +345,7 @@ if (isset($_POST['existing_profile_image'])) {
 
                     </div>
                 </div>
+
                 <div class="row mb-3">
                     <div class="col-md-12">
                         <label for="academic_year" class="form-label">ปีการศึกษา</label>
@@ -351,6 +353,24 @@ if (isset($_POST['existing_profile_image'])) {
                             required value="<?php echo @htmlspecialchars($_POST['academic_year']); ?>">
                     </div>
                 </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="year_level" class="form-label">ชั้นปี</label>
+                        <select class="form-control" id="year_level" name="year_level" required>
+                            <option value="" disabled <?php echo !isset($_POST['year_level']) ? 'selected' : ''; ?>>--
+                                เลือกชั้นปี --</option>
+                            <?php
+                            $year_levels = ["ชั้นปีที่ 1", "ชั้นปีที่ 2", "ชั้นปีที่ 3", "ชั้นปีที่ 4", "อื่นๆ"];
+                            foreach ($year_levels as $yl) {
+                                $selected = (isset($_POST['year_level']) && $_POST['year_level'] == $yl) ? 'selected' : '';
+                                echo "<option value=\"$yl\" $selected>$yl</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="row mb-3">
                     <div class="col-md-12">
                         <label for="department" class="form-label">สาขาวิชา</label>
@@ -358,12 +378,32 @@ if (isset($_POST['existing_profile_image'])) {
                             <option value="" disabled <?php echo !isset($_POST['department']) ? 'selected' : ''; ?>>--
                                 เลือกสาขาวิชา --</option>
                             <?php
-    $depts = ["วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "นวัตกรรมและธุรกิจอาหาร", "สาธารณสุขศาสตร์", "เคมี (วท.บ.)", "วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม", "ฟิสิกส์", "เคมี (ค.บ.)", "ชีววิทยา", "คณิตศาสตร์ประยุกต์"];
-    foreach ($depts as $d) {
-        $selected = (isset($_POST['department']) && $_POST['department'] == $d) ? 'selected' : '';
-        echo "<option value=\"$d\" $selected>$d</option>";
-    }
-    ?>
+                            $depts = ["วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "นวัตกรรมและธุรกิจอาหาร", "สาธารณสุขศาสตร์", "เคมี (วท.บ.)", "วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม", "ฟิสิกส์", "เคมี (ค.บ.)", "ชีววิทยา", "คณิตศาสตร์ประยุกต์"];
+                            foreach ($depts as $d) {
+                                $selected = (isset($_POST['department']) && $_POST['department'] == $d) ? 'selected' : '';
+                                echo "<option value=\"$d\" $selected>$d</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="userrole" class="form-label">สถานะ (สิทธิ์การใช้งาน)</label>
+                        <select class="form-control" id="userrole" name="userrole" required>
+                            <option value="">-- เลือกประเภท --</option>
+                            <option value="executive"
+                                <?= (isset($_POST['userrole']) && $_POST['userrole'] == 'executive') ? 'selected' : ''; ?>>
+                                ผู้บริหาร</option>
+                            <option value="academic_officer"
+                                <?= (isset($_POST['userrole']) && $_POST['userrole'] == 'academic_officer') ? 'selected' : ''; ?>>
+                                นักวิชาการศึกษา</option>
+                            <option value="club_president"
+                                <?= (isset($_POST['userrole']) && $_POST['userrole'] == 'club_president') ? 'selected' : ''; ?>>
+                                นายกสโมสรนักศึกษาและรองนายกสโมสรนักศึกษา</option>
+                            <option value="club_member"
+                                <?= (isset($_POST['userrole']) && $_POST['userrole'] == 'club_member') ? 'selected' : ''; ?>>
+                                สมาชิกสโมสรนักศึกษาคณะวิทยาศาสตร์และเทคโนโลยี</option>
                         </select>
                     </div>
                 </div>
@@ -393,13 +433,13 @@ if (isset($_POST['existing_profile_image'])) {
 
                         <div class="mb-2 mt-4 text-center">
                             <?php 
-                $display_img = "bg/default-profile.png";
-                $preview_style = "display: none;";
-                if ($profile_image != "default.png" && file_exists("uploads/" . $profile_image)) {
-                    $display_img = "uploads/" . $profile_image;
-                    $preview_style = "display: inline-block;";
-                }
-            ?>
+                            $display_img = "bg/default-profile.png";
+                            $preview_style = "display: none;";
+                            if ($profile_image != "default.png" && file_exists("uploads/" . $profile_image)) {
+                                $display_img = "uploads/" . $profile_image;
+                                $preview_style = "display: inline-block;";
+                            }
+                            ?>
                             <img id="preview" src="<?php echo $display_img; ?>" alt="Preview"
                                 style="width: 150px; height: 150px; object-fit: cover; border-radius: 50%; border: 2px solid #ddd; <?php echo $preview_style; ?>">
                         </div>
@@ -441,17 +481,17 @@ if (isset($_POST['existing_profile_image'])) {
         if (isRegistrationSuccess) {
             $("#statusMessage").html(
                 "<i class='fa-solid fa-circle-check text-success fa-2x mb-2'></i><br>สมัครสมาชิกเรียบร้อยแล้ว"
-                );
+            );
             $("#statusModal").modal("show");
         } else if (status === 'success') {
             $("#statusMessage").html(
                 "<i class='fa-solid fa-circle-check text-success fa-2x mb-2'></i><br>อัปเดตข้อมูลเรียบร้อยแล้ว"
-                );
+            );
             $("#statusModal").modal("show");
         } else if (status === 'error') {
             $("#statusMessage").html(
                 "<i class='fa-solid fa-triangle-exclamation text-danger fa-2x mb-2'></i><br>เกิดข้อผิดพลาดในการดำเนินการ"
-                );
+            );
             $("#statusModal").modal("show");
         }
 

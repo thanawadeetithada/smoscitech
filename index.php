@@ -8,7 +8,7 @@ $modal_type = $_SESSION['modal_type'] ?? '';
 unset($_SESSION['modal_message'], $_SESSION['modal_type']);
 
 $error_message = "";
-$usernameOrEmail = "";
+$idstudentOrEmail = "";
 
 if (!empty($_SERVER['HTTP_REFERER']) && parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST) === $_SERVER['HTTP_HOST']) {
     $referer_page = basename(parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH));
@@ -18,16 +18,16 @@ if (!empty($_SERVER['HTTP_REFERER']) && parse_url($_SERVER['HTTP_REFERER'], PHP_
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $usernameOrEmail = trim($_POST['username'] ?? '');
+    $idstudentOrEmail = trim($_POST['idstudent'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    if ($usernameOrEmail === "" || $password === "") {
+    if ($idstudentOrEmail === "" || $password === "") {
         $error_message = "⚠️ กรุณากรอกข้อมูลให้ครบถ้วน!";
     } else {
-        $sql = "SELECT * FROM users WHERE (username = ? OR email = ?) AND deleted_at IS NULL LIMIT 1";
+        $sql = "SELECT * FROM users WHERE (idstudent = ? OR email = ?) AND deleted_at IS NULL LIMIT 1";
 
         if ($stmt = $conn->prepare($sql)) {
-            $stmt->bind_param("ss", $usernameOrEmail, $usernameOrEmail);
+            $stmt->bind_param("ss", $idstudentOrEmail, $idstudentOrEmail);
             $stmt->execute();
             $result = $stmt->get_result();
 
@@ -38,8 +38,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $_SESSION['user_id'] = $user['user_id'];
                     $_SESSION['first_name'] = $user['first_name'];
                     $_SESSION['last_name'] = $user['last_name'];
-                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['idstudent'] = $user['idstudent'];
                     $_SESSION['email'] = $user['email'];
+                    $_SESSION['academic_year'] = $user['academic_year'];
+                    $_SESSION['year_level'] = $user['year_level'];
+                    $_SESSION['department'] = $user['department'];
                     $_SESSION['userrole'] = $user['userrole'];
 
                  switch ($user['userrole']) {
@@ -151,12 +154,6 @@ ob_end_flush();
 
     input {
          margin: 5px 0;
-        /* width: 100%;
-        padding: 12px;
-        margin: 5px 0;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        font-size: 16px; */
     }
 
     .input-email {
@@ -327,10 +324,10 @@ ob_end_flush();
         <?php endif; ?>
 
         <form action="index.php" method="POST" autocomplete="off">
-            <label for="username">ชื่อผู้ใช้งานหรืออีเมล</label>
-            <input type="username" id="username" name="username" placeholder="กรอกชื่อผู้ใช้งานหรืออีเมล" required
+            <label for="idstudent">รหัสนักศึกษาหรืออีเมล</label>
+            <input type="idstudent" id="idstudent" name="idstudent" placeholder="กรอกชื่อผู้ใช้งานหรืออีเมล" required
                 class="form-control"
-                value="<?php echo htmlspecialchars($usernameOrEmail ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                value="<?php echo htmlspecialchars($idstudentOrEmail ?? '', ENT_QUOTES, 'UTF-8'); ?>">
 
             <label for="password">รหัสผ่าน</label>
             <input type="password" id="password" name="password" placeholder="กรอกรหัสผ่าน" required

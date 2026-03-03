@@ -8,13 +8,14 @@ $profile_image = "default.png";
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $first_name = $_POST['first_name'];
     $last_name = $_POST['last_name'];
-    $username = $_POST['username'];
+    $idstudent = $_POST['idstudent'];
     $email = $_POST['email'];
     $password = $_POST['password'];
     $confirmpassword = $_POST['confirmpassword'];
     $academic_year = $_POST['academic_year'];
     $department = $_POST['department'];
     $userrole = 'club_member';
+    $year_level = $_POST['year_level'];
 
 $profile_image = isset($_POST['existing_profile_image']) ? $_POST['existing_profile_image'] : "default.png";
 
@@ -34,7 +35,7 @@ if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
     }
 
     if (empty($error_message)) {
-        $new_filename = $username . "_" . time() . "." . $ext;
+        $new_filename = $idstudent . "_" . time() . "." . $ext;
         if (!is_dir('uploads')) { mkdir('uploads', 0777, true); }
         
         if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], "uploads/" . $new_filename)) {
@@ -51,24 +52,24 @@ if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
     }
 
     if (empty($error_message)) {
-    $check_duplicate_sql = "SELECT email, username 
+    $check_duplicate_sql = "SELECT email, idstudent 
                         FROM users 
-                        WHERE (email = ? OR username = ?) 
+                        WHERE (email = ? OR idstudent = ?) 
                         AND deleted_at IS NULL
                         LIMIT 1";
         if ($stmt = $conn->prepare($check_duplicate_sql)) {
-            $stmt->bind_param("ss", $email, $username);
+            $stmt->bind_param("ss", $email, $idstudent);
             $stmt->execute();
             $stmt->store_result();
             if ($stmt->num_rows > 0) {
-                $stmt->bind_result($existing_email, $existing_username);
+                $stmt->bind_result($existing_email, $existing_idstudent);
                 $stmt->fetch();
-                if ($email === $existing_email && $username === $existing_username) {
-                    $error_message = "อีเมลและชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว";
+                if ($email === $existing_email && $idstudent === $existing_idstudent) {
+                    $error_message = "อีเมลและรหัสนักศึกษานี้ถูกใช้ไปแล้ว";
                 } elseif ($email === $existing_email) {
                     $error_message = "อีเมลนี้ถูกใช้ไปแล้ว กรุณาใช้อีเมลอื่น";
-                } elseif ($username === $existing_username) {
-                    $error_message = "ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว กรุณาใช้ชื่อผู้ใช้งานอื่น";
+                } elseif ($idstudent === $existing_idstudent) {
+                    $error_message = "รหัสนักศึกษานี้ถูกใช้ไปแล้ว กรุณาใช้รหัสนักศึกษาอื่น";
                 }
             }
             $stmt->close();
@@ -79,18 +80,17 @@ if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
 
     if (empty($error_message)) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $sql = "INSERT INTO users (first_name, last_name, email, username, password, academic_year, department, profile_image, userrole) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO users (first_name, last_name, email, idstudent, password, academic_year, year_level, department, profile_image, userrole) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try {
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sssssssss", $first_name, $last_name, $email, $username, $hashed_password, $academic_year, $department, $profile_image, $userrole);
-            $stmt->execute();
+            $stmt->bind_param("ssssssssss", $first_name, $last_name, $email, $idstudent, $hashed_password, $academic_year, $year_level, $department, $profile_image, $userrole);            $stmt->execute();
             $registration_success = true;
             $stmt->close();
         } catch (mysqli_sql_exception $e) {
             if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
-                 $error_message = "ชื่อผู้ใช้งานหรืออีเมลนี้ถูกใช้ไปแล้ว";
+                 $error_message = "รหัสนักศึกษาหรืออีเมลนี้ถูกใช้ไปแล้ว";
             } else {
                  $error_message = "เกิดข้อผิดพลาด: " . $e->getMessage();
         }
@@ -273,10 +273,10 @@ if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-12">
-                        <label for="username" class="form-label">ชื่อผู้ใช้งาน</label>
-                        <input type="text" id="username" name="username" placeholder="ชื่อผู้ใช้งาน" required
+                        <label for="idstudent" class="form-label">รหัสนักศึกษา</label>
+                        <input type="text" id="idstudent" name="idstudent" placeholder="รหัสนักศึกษา" required
                             class="form-control"
-                            value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
+                            value="<?php echo isset($_POST['idstudent']) ? htmlspecialchars($_POST['idstudent']) : ''; ?>">
 
                     </div>
                 </div>
@@ -293,6 +293,23 @@ if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
                         <label for="academic_year" class="form-label">ปีการศึกษา</label>
                         <input type="number" name="academic_year" class="form-control" placeholder="ระบุปีการศึกษา"
                             required value="<?php echo @htmlspecialchars($_POST['academic_year']); ?>">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="year_level" class="form-label">ชั้นปี</label>
+                        <select class="form-control" id="year_level" name="year_level" required>
+                            <option value="" disabled <?php echo !isset($_POST['year_level']) ? 'selected' : ''; ?>>--
+                                เลือกชั้นปี --</option>
+                            <?php
+            $levels = ["ชั้นปีที่ 1", "ชั้นปีที่ 2", "ชั้นปีที่ 3", "ชั้นปีที่ 4"];
+            foreach ($levels as $l) {
+                $selected = (isset($_POST['year_level']) && $_POST['year_level'] == $l) ? 'selected' : '';
+                echo "<option value=\"$l\" $selected>$l</option>";
+            }
+            ?>
+                        </select>
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -315,6 +332,8 @@ if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
                         </select>
                     </div>
                 </div>
+
+
                 <div class="row mb-3">
                     <div class="col-md-12">
                         <label for="password" class="form-label">รหัสผ่าน</label>

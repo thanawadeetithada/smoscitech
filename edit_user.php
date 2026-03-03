@@ -206,12 +206,8 @@ $row = $result->fetch_assoc();
                             class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
                 <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio</a></li>
-                <li><a href="admin_transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-file-lines"></i> Transcript</a></li>
-                <li><a href="admin_approve_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-calendar-check"></i> อนุมัติกิจกรรม</a></li>
+                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
                 <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
                 <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
@@ -241,9 +237,9 @@ $row = $result->fetch_assoc();
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-12">
-                        <label for="username" class="form-label">ชื่อผู้ใช้งาน</label>
-                        <input class="form-control" type="text" id="username" name="username"
-                            value="<?= $row['username'] ?>" required>
+                        <label for="idstudent" class="form-label">รหัสนักศึกษา</label>
+                        <input class="form-control" type="text" id="idstudent" name="idstudent"
+                            value="<?= $row['idstudent'] ?>" required>
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -258,6 +254,23 @@ $row = $result->fetch_assoc();
                         <label for="academic_year" class="form-label">ปีการศึกษา</label>
                         <input class="form-control" type="text" id="academic_year" name="academic_year"
                             value="<?= $row['academic_year'] ?>" required>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="year_level" class="form-label">ชั้นปี</label>
+                        <select class="form-control" id="year_level" name="year_level" required>
+                            <option value="" disabled <?= empty($row['year_level']) ? 'selected' : ''; ?>>-- เลือกชั้นปี
+                                --</option>
+                            <?php
+            $year_levels = ["ชั้นปีที่ 1", "ชั้นปีที่ 2", "ชั้นปีที่ 3", "ชั้นปีที่ 4", "อื่นๆ"];
+            foreach ($year_levels as $yl) {
+                // เปลี่ยนจากการเช็ค $_POST เป็นการเช็คค่าจากฐานข้อมูล ($row)
+                $selected = ($row['year_level'] == $yl) ? 'selected' : '';
+                echo "<option value=\"$yl\" $selected>$yl</option>";
+            }
+            ?>
+                        </select>
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -317,7 +330,7 @@ $row = $result->fetch_assoc();
                         <label for="profile_image" class="form-label">รูปโปรไฟล์</label>
                         <input type="file" id="profile_image" name="profile_image" class="form-control" accept="image/*"
                             onchange="previewImage(event)">
-                            <br>
+                        <br>
                         <div class="mb-2 text-center">
                             <?php 
                     $image_src = "bg/default-profile.png";

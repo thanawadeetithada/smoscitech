@@ -6,10 +6,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_id = $_POST["user_id"];
     $first_name = $_POST["first_name"];
     $last_name = $_POST["last_name"];
-    $username = $_POST["username"];
+    $idstudent = $_POST["idstudent"];
     $email = $_POST["email"];
     $department = $_POST["department"];
     $academic_year = $_POST["academic_year"];
+    $year_level = $_POST["year_level"]; // 1. เพิ่มการรับค่า year_level
     $userrole = $_POST["userrole"];
 
     $sql_old = "SELECT profile_image FROM users WHERE user_id = ?";
@@ -41,9 +42,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    $sql = "UPDATE users SET first_name=?, last_name=?, username=?, email=?, userrole=?, department=?, academic_year=?, profile_image=? WHERE user_id=?";
+    $sql = "UPDATE users SET first_name=?, last_name=?, idstudent=?, email=?, userrole=?, department=?, academic_year=?, year_level=?, profile_image=? WHERE user_id=?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssssssi", $first_name, $last_name, $username, $email, $userrole, $department, $academic_year, $profile_image, $user_id);
+    
+    $stmt->bind_param("sssssssssi", $first_name, $last_name, $idstudent, $email, $userrole, $department, $academic_year, $year_level, $profile_image, $user_id);
 
     if ($stmt->execute()) {
         header("Location: edit_user.php?user_id=$user_id&status=success");

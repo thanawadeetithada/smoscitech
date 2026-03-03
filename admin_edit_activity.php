@@ -27,6 +27,29 @@ $stmt_tasks = $conn->prepare($sql_tasks);
 $stmt_tasks->bind_param("i", $activity_id);
 $stmt_tasks->execute();
 $tasks_result = $stmt_tasks->get_result();
+
+// 4. ดึงข้อมูล "ปีการศึกษา" แบบไม่ซ้ำจากตาราง users
+$academic_years = [];
+$sql_years = "SELECT DISTINCT academic_year FROM users WHERE academic_year IS NOT NULL AND academic_year != '' ORDER BY academic_year DESC";
+$result_years = $conn->query($sql_years);
+if ($result_years && $result_years->num_rows > 0) {
+    while ($row = $result_years->fetch_assoc()) {
+        $academic_years[] = $row['academic_year'];
+    }
+}
+
+// 5. กำหนด Array สำหรับ "ชั้นปี" และ "สาขาวิชา"
+$year_levels = ["ชั้นปีที่ 1", "ชั้นปีที่ 2", "ชั้นปีที่ 3", "ชั้นปีที่ 4"];
+$depts = [
+    "วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "นวัตกรรมและธุรกิจอาหาร", 
+    "สาธารณสุขศาสตร์", "เคมี (วท.บ.)", "วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม", 
+    "ฟิสิกส์", "เคมี (ค.บ.)", "ชีววิทยา", "คณิตศาสตร์ประยุกต์"
+];
+
+// 6. แปลงข้อมูลเงื่อนไขเดิมจาก Database ให้เป็น Array เพื่อทำ Pre-selected
+$current_year_levels = !empty($activity['allowed_year_level']) ? explode(',', $activity['allowed_year_level']) : [];
+$current_academic_years = !empty($activity['allowed_academic_year']) ? explode(',', $activity['allowed_academic_year']) : [];
+$current_departments = !empty($activity['allowed_department']) ? explode(',', $activity['allowed_department']) : [];
 ?>
 
 <!DOCTYPE html>
@@ -39,6 +62,10 @@ $tasks_result = $stmt_tasks->get_result();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
     <style>
     body {
         font-family: 'Prompt', sans-serif;
@@ -100,6 +127,10 @@ $tasks_result = $stmt_tasks->get_result();
         border-radius: 10px;
         margin-bottom: 10px;
     }
+    
+    .select2-container--bootstrap-5 .select2-selection {
+        min-height: 38px;
+    }
     </style>
 </head>
 
@@ -121,20 +152,11 @@ $tasks_result = $stmt_tasks->get_result();
         </div>
         <div class="offcanvas-body">
             <ul class="list-unstyled">
-                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio</a></li>
-                <li><a href="admin_transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-file-lines"></i> Transcript</a></li>
-                <li><a href="admin_approve_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-calendar-check"></i> อนุมัติกิจกรรม</a></li>
-                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
-                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
+                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
+                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
+                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
             </ul>
         </div>
     </div>
@@ -143,8 +165,7 @@ $tasks_result = $stmt_tasks->get_result();
         <div class="row justify-content-center">
             <div class="col-lg-10">
                 <div class="d-flex align-items-center mb-4">
-                    <a href="admin_activity.php" class="btn me-3"><i
-                            class="fas fa-arrow-left"></i></a>
+                    <a href="admin_activity.php" class="btn me-3"><i class="fas fa-arrow-left"></i></a>
                     <h3 class="fw-bold mb-0">แก้ไขข้อมูลกิจกรรม</h3>
                 </div>
 
@@ -153,8 +174,7 @@ $tasks_result = $stmt_tasks->get_result();
 
                     <div class="card mb-4">
                         <div class="card-body p-4">
-                            <h5 class="card-title mb-4 border-bottom pb-2"><i
-                                    class="fas fa-info-circle me-2 text-primary"></i>ข้อมูลทั่วไป</h5>
+                            <h5 class="card-title mb-4 border-bottom pb-2"><i class="fas fa-info-circle me-2 text-primary"></i>ข้อมูลทั่วไป</h5>
                             <div class="row g-3">
                                 <div class="col-md-12">
                                     <label class="form-label">รูปหน้าปกปัจจุบัน</label>
@@ -190,47 +210,75 @@ $tasks_result = $stmt_tasks->get_result();
                                 <div class="col-md-3">
                                     <label class="form-label">สถานะ</label>
                                     <select name="status" class="form-select">
-                                        <option value="open"
-                                            <?php if($activity['status'] == 'open') echo 'selected'; ?>>Open
-                                            (เปิดรับสมัคร)</option>
-                                        <option value="closed"
-                                            <?php if($activity['status'] == 'closed') echo 'selected'; ?>>Closed
-                                            (ปิดรับสมัคร)</option>
-                                        <option value="completed"
-                                            <?php if($activity['status'] == 'completed') echo 'selected'; ?>>Completed
-                                            (จบกิจกรรม)</option>
+                                        <option value="open" <?php if($activity['status'] == 'open') echo 'selected'; ?>>Open (เปิดรับสมัคร)</option>
+                                        <option value="closed" <?php if($activity['status'] == 'closed') echo 'selected'; ?>>Closed (ปิดรับสมัคร)</option>
+                                        <option value="completed" <?php if($activity['status'] == 'completed') echo 'selected'; ?>>Completed (จบกิจกรรม)</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">วันเริ่มงาน</label>
                                     <input type="datetime-local" name="start_date" class="form-control"
-                                        value="<?php echo date('Y-m-d\TH:i', strtotime($activity['start_date'])); ?>"
-                                        required>
+                                        value="<?php echo date('Y-m-d\TH:i', strtotime($activity['start_date'])); ?>" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">วันสิ้นสุด</label>
                                     <input type="datetime-local" name="end_date" class="form-control"
-                                        value="<?php echo date('Y-m-d\TH:i', strtotime($activity['end_date'])); ?>"
-                                        required>
+                                        value="<?php echo date('Y-m-d\TH:i', strtotime($activity['end_date'])); ?>" required>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <div class="card mb-4 border-primary">
+                        <div class="card-body p-4">
+                            <h5 class="card-title mb-4"><i class="fas fa-user-lock me-2 text-primary"></i>เงื่อนไขผู้มีสิทธิ์เข้าร่วม (ปล่อยว่างหากเปิดรับทุกคน)</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">ชั้นปีที่รับสมัคร</label>
+                                    <select name="target_year_level[]" class="form-select select2-multiple" multiple="multiple" data-placeholder="เลือกชั้นปี...">
+                                        <?php foreach ($year_levels as $yl): ?>
+                                            <option value="<?php echo htmlspecialchars($yl); ?>" <?php echo in_array($yl, $current_year_levels) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($yl); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label">ปีการศึกษา</label>
+                                    <select name="target_academic_year[]" class="form-select select2-multiple" multiple="multiple" data-placeholder="เลือกปีการศึกษา...">
+                                        <?php foreach ($academic_years as $ay): ?>
+                                            <option value="<?php echo htmlspecialchars($ay); ?>" <?php echo in_array($ay, $current_academic_years) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($ay); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label">สาขาวิชา</label>
+                                    <select name="target_department[]" class="form-select select2-multiple" multiple="multiple" data-placeholder="เลือกสาขาวิชา...">
+                                        <?php foreach ($depts as $dept): ?>
+                                            <option value="<?php echo htmlspecialchars($dept); ?>" <?php echo in_array($dept, $current_departments) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($dept); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="card mb-4">
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
-                                <h5 class="card-title mb-0"><i
-                                        class="fas fa-users me-2 text-success"></i>หน้าที่และฝ่ายงาน</h5>
-                                <button type="button" class="btn btn-sm btn-success px-3"
-                                    onclick="addTask()"><i class="fas fa-plus"></i> เพิ่มฝ่ายใหม่</button>
+                                <h5 class="card-title mb-0"><i class="fas fa-users me-2 text-success"></i>หน้าที่และฝ่ายงาน</h5>
+                                <button type="button" class="btn btn-sm btn-success px-3" onclick="addTask()"><i class="fas fa-plus"></i> เพิ่มฝ่ายใหม่</button>
                             </div>
 
                             <div id="tasks-container">
                                 <?php while($task = $tasks_result->fetch_assoc()): ?>
                                 <div class="task-row animate__animated animate__fadeIn">
-                                    <button type="button" class="btn-remove-task"
-                                        onclick="this.parentElement.remove()">&times;</button>
+                                    <button type="button" class="btn-remove-task" onclick="this.parentElement.remove()">&times;</button>
                                     <div class="row g-3">
                                         <div class="col-md-5">
                                             <label class="small fw-bold">ชื่อฝ่าย/หน้าที่</label>
@@ -239,8 +287,7 @@ $tasks_result = $stmt_tasks->get_result();
                                         </div>
                                         <div class="col-md-4">
                                             <label class="small fw-bold">จำนวนรับ (คน)</label>
-                                            <input type="number" name="task_capacity[]"
-                                                class="form-control form-control-sm"
+                                            <input type="number" name="task_capacity[]" class="form-control form-control-sm"
                                                 value="<?php echo $task['capacity']; ?>" min="1">
                                         </div>
                                         <div class="col-md-3">
@@ -256,8 +303,7 @@ $tasks_result = $stmt_tasks->get_result();
                     </div>
 
                     <div class="text-center">
-                        <a href="admin_activity.php"
-                            class="btn btn-outline-secondary px-4 me-2">ยกเลิก</a>
+                        <a href="admin_activity.php" class="btn btn-outline-secondary px-4 me-2">ยกเลิก</a>
                         <button type="submit" class="btn btn-primary px-5 shadow">บันทึกการเปลี่ยนแปลง</button>
                     </div>
                 </form>
@@ -265,11 +311,24 @@ $tasks_result = $stmt_tasks->get_result();
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
+    $(document).ready(function() {
+        // เริ่มต้นการใช้งาน Select2
+        $('.select2-multiple').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            allowClear: true
+        });
+    });
+
     function addTask() {
         const container = document.getElementById('tasks-container');
         const div = document.createElement('div');
-        div.className = 'task-row';
+        div.className = 'task-row animate__animated animate__fadeIn';
         div.innerHTML = `
         <button type="button" class="btn-remove-task" onclick="this.parentElement.remove()">&times;</button>
         <div class="row g-3">
@@ -286,12 +345,10 @@ $tasks_result = $stmt_tasks->get_result();
                 <input type="text" name="task_detail[]" class="form-control form-control-sm">
             </div>
         </div>
-    `;
+        `;
         container.appendChild(div);
     }
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>

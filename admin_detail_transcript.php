@@ -2,20 +2,27 @@
 session_start();
 include 'db.php';
 
-// เช็คการล็อกอิน
-if (!isset($_SESSION['user_id'])) {
+// เช็คสิทธิ์แอดมิน
+$allowed_roles = ['executive', 'academic_officer', 'club_president'];
+if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_roles)) {
     header("Location: index.php");
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
+// รับค่า user_id จาก URL ที่ส่งมาจากหน้าตาราง
+$target_user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
+
+if ($target_user_id === 0) {
+    header("Location: admin_e-portfolio_transcript.php");
+    exit();
+}
 
 // ==========================================
 // 1. ดึงข้อมูลส่วนตัวของผู้ใช้ (Profile)
 // ==========================================
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
-$stmt_user->bind_param("i", $user_id);
+$stmt_user->bind_param("i", $target_user_id);
 $stmt_user->execute();
 $user_profile = $stmt_user->get_result()->fetch_assoc();
 $stmt_user->close();
@@ -42,73 +49,52 @@ $sql_act = "SELECT
             ORDER BY a.start_date DESC";
             
 $stmt_act = $conn->prepare($sql_act);
-$stmt_act->bind_param("i", $user_id);
+$stmt_act->bind_param("i", $target_user_id);
 $stmt_act->execute();
 $result_act = $stmt_act->get_result();
 
 while ($row = $result_act->fetch_assoc()) {
     $activities[] = $row;
-    $total_hours += intval($row['hours_count']); // คำนวณชั่วโมงรวม
+    $total_hours += intval($row['hours_count']);
 }
 $stmt_act->close();
 
-// วันที่ออกใบรับรอง (ปัจจุบัน) รูปแบบไทย
+// วันที่ออกใบรับรอง
 $thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 543);
 ?>
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-title" content="App Premium">
-    <meta name="application-name" content="App Premium">
-    <meta name="theme-color" content="#96a1cd">
-    <title>หน้า Transcript</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <title>Transcript ของ <?php echo htmlspecialchars($user_profile['first_name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
-    :root {
-        --primary-color: #4e73df;
-    }
-
+    :root { --primary-color: #4e73df; }
     body { font-family: 'Prompt', sans-serif; background-color: #f8f9fc; margin: 0; }
     .nav-item a { color: white; margin-right: 1rem; }
     .navbar { padding: 15px 20px; }
-    .nav-link:hover { color: white; }
     .main-content { max-width: 1000px; margin: 30px auto; padding: 0 15px; }
 
-    /* Profile Header */
     .profile-header { background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); height: 150px; border-radius: 15px 15px 0 0; position: relative; }
     .profile-img-container { position: absolute; bottom: -40px; left: 40px; }
     .profile-img { width: 120px; height: 120px; border-radius: 50%; border: 4px solid #fff; object-fit: cover; background: white;}
     .profile-info { padding-top: 10px; padding-left: 180px; padding-bottom: 20px; }
 
-    /* Transcript Card */
     .transcript-card { border: 1px solid #e3e6f0; border-radius: 10px; background-color: #fff; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); }
     .table th { font-weight: 600; color: #495057; background-color: #fff; border-bottom: 2px solid #e3e6f0; }
     .table td { vertical-align: middle; padding: 1rem 0.75rem; }
     .status-badge { color: #1cc88a; font-weight: bold; }
     .signature-area { font-family: 'Sarabun', serif; font-style: italic; color: #4e73df; font-size: 1.2rem; }
     .total-hours-row { background-color: #f8f9fc; font-weight: bold; color: #2563eb; }
-    
     .footer-note { background-color: #eef2ff; border: 1px dashed #a5b4fc; color: #1e40af; border-radius: 8px; }
 
-    /* Floating Print Button */
-    .print-btn-float {
-        position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
-        border-radius: 50%; background-color: #2c3e50; color: white; border: 2px solid white;
-        display: flex; align-items: center; justify-content: center; font-size: 24px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); z-index: 1000; cursor: pointer; transition: 0.2s;
-    }
+    .print-btn-float { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background-color: #2c3e50; color: white; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); z-index: 1000; cursor: pointer; transition: 0.2s; }
     .print-btn-float:hover { transform: scale(1.1); background-color: #1a252f; color: white; }
 
-    /* Responsive Mobile Styles */
     @media (max-width: 768px) {
         .main-content { margin: 15px auto; }
         .profile-header { height: 120px; }
@@ -116,122 +102,47 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
         .profile-info { padding: 65px 20px 20px 20px; text-align: center; }
         .profile-info .d-flex { justify-content: center; flex-wrap: wrap; }
         .export-btn-container { text-align: center; width: 100%; margin-top: 10px; }
-
-        /* Responsive Table */
         .transcript-card { padding: 1.5rem !important; }
         .table thead { display: none; }
         .table tr { display: block; border: 1px solid #e3e6f0; border-radius: 10px; margin-bottom: 15px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-        .table td { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 8px 5px !important; border-bottom: 1px solid #f8f9fc; font-size: 0.95rem;
-        }
+        .table td { display: flex; justify-content: space-between; align-items: center; padding: 8px 5px !important; border-bottom: 1px solid #f8f9fc; font-size: 0.95rem; }
         .table td:last-child { border-bottom: none; }
-        .table td::before { 
-            content: attr(data-label); font-weight: bold; color: #6c757d; font-size: 0.85rem; 
-        }
+        .table td::before { content: attr(data-label); font-weight: bold; color: #6c757d; font-size: 0.85rem; }
         .table td[data-label="กิจกรรม"] { flex-direction: column; align-items: flex-end; text-align: right; }
         .total-hours-row td { justify-content: space-between; background-color: #eef2ff; border-radius: 8px; border: none; }
         .total-hours-row td::before { content: none; }
-
         .signature-row { flex-direction: column; gap: 30px; text-align: center !important; }
         .signature-row .text-md-end, .signature-row .text-md-start { text-align: center !important; }
-        .signature-row div[style*="width: 200px"], .signature-row div[style*="width: 150px"] { margin: 0 auto !important; }
+        .signature-row div[style*="width: 200px"] { margin: 0 auto !important; }
     }
 
-    /* ========================================= */
-    /* Print Styles - สั่ง Export เฉพาะใบ Transcript */
-    /* ========================================= */
+    /* Print Styles ของหน้า Transcript แอดมิน */
     @media print {
-        @page { 
-            margin: 0; 
-            size: A4 portrait;
-        }
-        
-        body { 
-            background-color: #fff; 
-            -webkit-print-color-adjust: exact !important; 
-            print-color-adjust: exact !important; 
-            margin: 0;
-            padding: 1.5cm;
-            font-size: 14px !important; 
-        }
-        
+        @page { margin: 0; size: A4 portrait; }
+        body { background-color: #fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; padding: 1.5cm; font-size: 14px !important; }
         body > *:not(.main-content) { display: none !important; }
         .d-print-none { display: none !important; }
-        
-        .main-content, .container { 
-            margin: 0 !important; 
-            padding: 0 !important; 
-            max-width: 100% !important; 
-            width: 100% !important; 
-        }
-        
-        .transcript-card { 
-            border: none !important; 
-            box-shadow: none !important; 
-            padding: 0 !important; 
-            margin: 0 !important;
-            border-radius: 0 !important;
-        }
-
-        .row {
-            display: flex !important;
-            flex-wrap: nowrap !important;
-            flex-direction: row !important;
-        }
-        .col-md-6 {
-            flex: 0 0 50% !important;
-            max-width: 50% !important;
-            width: 50% !important;
-        }
+        .main-content, .container { margin: 0 !important; padding: 0 !important; max-width: 100% !important; width: 100% !important; }
+        .transcript-card { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; border-radius: 0 !important; }
+        .row { display: flex !important; flex-wrap: nowrap !important; flex-direction: row !important; }
+        .col-md-6 { flex: 0 0 50% !important; max-width: 50% !important; width: 50% !important; }
         .text-md-end { text-align: right !important; }
         .text-md-start { text-align: left !important; }
-
         .table { display: table !important; width: 100% !important; border-collapse: collapse !important; }
         .table thead { display: table-header-group !important; }
         .table tbody { display: table-row-group !important; }
         .table tr { display: table-row !important; border: none !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; page-break-inside: avoid !important; }
         .table th, .table td { display: table-cell !important; padding: 12px 8px !important; border-bottom: 1px solid #e3e6f0 !important; text-align: left !important; vertical-align: middle !important; font-size: 14px !important;}
         .table td::before { display: none !important; }
-        
         .table td[data-label="กิจกรรม"] { flex-direction: column !important; align-items: flex-start !important; text-align: left !important; }
         .table th.text-center, .table td.text-center { text-align: center !important; }
         .table th.text-end, .table td.text-end { text-align: right !important; }
-
-        /* จัดการลายเซ็นให้ตรงกันในแนวราบ (บังคับฐานข้อความให้เท่ากัน) */
-        .signature-row {
-            display: flex !important;
-            align-items: flex-end !important; /* จัดให้ขอบล่างของกล่องเท่ากัน */
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-        }
+        .signature-row { display: flex !important; align-items: flex-end !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+        .signature-row .col-md-6 { margin-top: 0 !important; }
+        .footer-note, .print-protect { page-break-inside: avoid !important; break-inside: avoid !important; }
         
-        .signature-row .col-md-6 {
-            margin-top: 0 !important; /* ป้องกันการดันบรรทัดจากคลาส mt-4 */
-        }
-
-        .footer-note, .print-protect {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-        }
-
-        .total-hours-row td { 
-            background-color: #f8f9fc !important; 
-            border-top: none !important; 
-        }
-
-        /* เปลี่ยนสีตัวอักษรที่เป็นสีฟ้า (text-primary) ในตารางให้เป็นสีดำตอนพิมพ์ */
-        .table td.text-primary,
-        .total-hours-row td.text-primary {
-            color: #000 !important;
-        }
-        
-        /* บังคับให้ช่องรวมชั่วโมงด้านล่างสุด ตัวหนังสือเป็นสีดำทั้งหมด */
-        .total-hours-row td { 
-            background-color: #f8f9fc !important; 
-            border-top: none !important; 
-            color: #000 !important; 
-        }
+        .total-hours-row td { background-color: #f8f9fc !important; border-top: none !important; color: #000 !important; }
+        .table td.text-primary, .total-hours-row td.text-primary { color: #000 !important; }
     }
     </style>
 </head>
@@ -242,7 +153,7 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
             <i class="fa-solid fa-bars text-white fs-5" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" style="cursor: pointer;"></i>
             <div class="nav-item">
                 <a class="nav-link text-white fw-bold" href="logout.php">
-                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'User'; ?> ]
+                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'Admin'; ?> ]
                     <i class="fa-solid fa-arrow-right-from-bracket ms-1"></i>
                 </a>
             </div>
@@ -251,20 +162,25 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
 
     <div class="offcanvas offcanvas-start bg-dark text-white d-print-none" tabindex="-1" id="sidebarMenu">
         <div class="offcanvas-header border-bottom border-secondary">
-            <h5 class="offcanvas-title fw-bold"><i class="fa-solid fa-bars-staggered me-2"></i> เมนู</h5>
+            <h5 class="offcanvas-title fw-bold"><i class="fa-solid fa-bars-staggered me-2"></i> เมนูแอดมิน</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body">
             <ul class="list-unstyled">
-                <li><a href="activity.php" class="text-white text-decoration-none d-block py-3 px-2 rounded hover-bg"><i class="fa-solid fa-list-check me-2"></i> กิจกรรมทั้งหมด</a></li>
-                <li><a href="score_activity.php" class="text-white text-decoration-none d-block py-3 px-2 rounded hover-bg"><i class="fa-regular fa-star me-2"></i> ผลการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="e-portfolio.php" class="text-white text-decoration-none d-block py-3 px-2 rounded hover-bg"><i class="fa-regular fa-address-book me-2"></i> E-Portfolio </a></li>
-                <li><a href="transcript.php" class="text-white text-decoration-none d-block py-3 px-2 rounded hover-bg text-info"><i class="fa-regular fa-file-lines me-2"></i> Transcript</a></li>
+                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-chart-line me-2"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
+                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-list-check me-2"></i> กิจกรรม</a></li>
+                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2 text-info"><i class="fa-regular fa-address-book me-2"></i> E-Portfolio / Transcript</a></li>
+                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-star me-2"></i> คะแนนกิจกรรม</a></li>
+                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-user-tie me-2"></i> ข้อมูลผู้ใช้งาน</a></li>
             </ul>
         </div>
     </div>
 
     <div class="main-content">
+
+        <a href="admin_e-portfolio_transcript.php" class="btn mb-3 px-4 d-print-none">
+            <i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ
+        </a>
 
         <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden d-print-none">
             <div class="profile-header">
@@ -286,7 +202,7 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
                         </div>
                     </div>
                     <div class="export-btn-container mb-2">
-                        <button class="btn btn-primary px-4 py-2 rounded-pill shadow-sm fw-bold d-print-none" onclick="window.print()">
+                        <button class="btn btn-primary px-4 py-2 rounded-pill shadow-sm fw-bold" onclick="window.print()">
                             <i class="fas fa-download me-2"></i> Export PDF
                         </button>
                     </div>
@@ -300,15 +216,11 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
                     <h3 class="fw-bold mb-1 text-center">ใบแสดงผลการเข้าร่วมกิจกรรม<br><small class="text-muted fs-5">(Activity Transcript)</small></h3>
                     <div class="row mt-4 text-dark fs-6">
                         <div class="col-md-6 text-center text-md-start">
-                            <p class="mb-2"><strong>ชื่อ-นามสกุล:</strong>
-                                <?php echo htmlspecialchars($user_profile['first_name'] . ' ' . $user_profile['last_name']); ?>
-                            </p>
-                            <p class="mb-2"><strong>สาขาวิชา:</strong>
-                                <?php echo htmlspecialchars($user_profile['department'] ?? '-'); ?></p>
+                            <p class="mb-2"><strong>ชื่อ-นามสกุล:</strong> <?php echo htmlspecialchars($user_profile['first_name'] . ' ' . $user_profile['last_name']); ?></p>
+                            <p class="mb-2"><strong>สาขาวิชา:</strong> <?php echo htmlspecialchars($user_profile['department'] ?? '-'); ?></p>
                         </div>
                         <div class="col-md-6 text-center text-md-end">
-                            <p class="mb-2"><strong>รหัสนักศึกษา:</strong>
-                                <?php echo htmlspecialchars($user_profile['idstudent'] ?? '-'); ?></p>
+                            <p class="mb-2"><strong>รหัสนักศึกษา:</strong> <?php echo htmlspecialchars($user_profile['idstudent'] ?? '-'); ?></p>
                             <p class="mb-2"><strong>วันที่ออกใบรับรอง:</strong> <?php echo $current_date; ?></p>
                         </div>
                     </div>
@@ -339,13 +251,10 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
                             <td data-label="ลำดับ" class="text-center"><?php echo $i++; ?></td>
                             <td data-label="กิจกรรม">
                                 <div class="fw-bold text-dark"><?php echo htmlspecialchars($act['title']); ?></div>
-                                <small class="text-muted"><i class="fa-regular fa-calendar me-1"></i>
-                                    <?php echo $date_str; ?></small>
+                                <small class="text-muted"><i class="fa-regular fa-calendar me-1"></i> <?php echo $date_str; ?></small>
                             </td>
-                            <td data-label="บทบาท">
-                                <?php echo htmlspecialchars($act['task_name'] ?? 'ผู้เข้าร่วมทั่วไป'); ?></td>
-                            <td data-label="ชั่วโมง" class="text-center fw-bold text-primary">
-                                <?php echo intval($act['hours_count']); ?></td>
+                            <td data-label="บทบาท"><?php echo htmlspecialchars($act['task_name'] ?? 'ผู้เข้าร่วมทั่วไป'); ?></td>
+                            <td data-label="ชั่วโมง" class="text-center fw-bold text-primary"><?php echo intval($act['hours_count']); ?></td>
                             <td data-label="สถานะ" class="text-end status-badge"><i class="fa-solid fa-circle-check me-1"></i> ผ่าน</td>
                         </tr>
                         <?php endforeach; ?>
@@ -358,8 +267,7 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
                         <?php else: ?>
                         <tr>
                             <td colspan="5" class="text-center py-4 text-muted">
-                                <i class="fa-regular fa-folder-open mb-2 fs-4 d-block"></i>
-                                ยังไม่มีประวัติกิจกรรมที่ผ่านการประเมิน
+                                <i class="fa-regular fa-folder-open mb-2 fs-4 d-block"></i> ยังไม่มีประวัติกิจกรรมที่ผ่านการประเมิน
                             </td>
                         </tr>
                         <?php endif; ?>
@@ -388,11 +296,9 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
                 <i class="fa-solid fa-circle-info mt-1 me-3 text-primary fs-5"></i>
                 <small class="text-dark">
                     ใบรับรองนี้ใช้เพื่อแสดงผลการเข้าร่วมกิจกรรมของนักศึกษาคณะวิทยาศาสตร์และเทคโนโลยีเท่านั้น<br>
-                    สามารถนำไปใช้ประกอบการยื่นขอทุนการศึกษา หรือกองทุนเงินให้กู้ยืมเพื่อการศึกษา (กยศ.)
-                    ได้ตามระเบียบของมหาวิทยาลัย
+                    สามารถนำไปใช้ประกอบการยื่นขอทุนการศึกษา หรือกองทุนเงินให้กู้ยืมเพื่อการศึกษา (กยศ.) ได้ตามระเบียบของมหาวิทยาลัย
                 </small>
             </div>
-
         </div>
     </div>
 
@@ -400,11 +306,5 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
         <i class="fas fa-print"></i>
     </div>
 
-    <style>
-    .hover-bg:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-    }
-    </style>
 </body>
-
 </html>

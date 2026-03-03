@@ -16,6 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $end_date = $_POST['end_date'];
     $created_by = $_SESSION['user_id'];
 
+    // 1. รับค่าจาก Dropdown (ถ้าไม่ได้เลือกให้เป็น NULL)
+    $allowed_year_level = isset($_POST['target_year_level']) ? implode(',', $_POST['target_year_level']) : NULL;
+    $allowed_academic_year = isset($_POST['target_academic_year']) ? implode(',', $_POST['target_academic_year']) : NULL;
+    $allowed_department = isset($_POST['target_department']) ? implode(',', $_POST['target_department']) : NULL;
+
     $target_dir = "uploads/covers/";
     $image_name = NULL;
 
@@ -34,11 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $conn->begin_transaction();
 
     try {
-        $sql_activity = "INSERT INTO activities (title, description, location, start_date, end_date, hours_count, cover_image, status, created_by) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?)";
+        // 2. เพิ่มคอลัมน์ใหม่ 3 ตัว เข้าไปในคำสั่ง SQL INSERT
+        $sql_activity = "INSERT INTO activities (title, description, location, start_date, end_date, hours_count, cover_image, status, created_by, allowed_year_level, allowed_academic_year, allowed_department) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?)";
         
         $stmt = $conn->prepare($sql_activity);
-        $stmt->bind_param("sssssisi", $title, $description, $location, $start_date, $end_date, $hours_count, $image_name, $created_by);
+        
+        // 3. เพิ่ม sss ต่อท้ายใน bind_param และใส่ตัวแปรใหม่เข้าไป (รวมทั้งหมด 11 ตัวแปร)
+        $stmt->bind_param("sssssisisss", $title, $description, $location, $start_date, $end_date, $hours_count, $image_name, $created_by, $allowed_year_level, $allowed_academic_year, $allowed_department);
         $stmt->execute();
         
         $activity_id = $conn->insert_id;
