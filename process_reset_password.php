@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['token'], $_POST['pass
 
             $_SESSION['modal_message'] = "เปลี่ยนรหัสผ่านสำเร็จ!";
             $_SESSION['modal_type'] = "success";
-            header("Location: login.php");
+            header("Location: index.php");
             exit();
         } else {
             $_SESSION['modal_message'] = "❌ ลิงก์นี้หมดอายุแล้ว!";
