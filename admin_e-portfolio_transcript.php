@@ -249,19 +249,33 @@ while($y = $year_query->fetch_assoc()) {
                             class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
                 <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
-                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li>
+                    <a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2">
+                        <i class="fa-regular fa-address-book"></i>
+                        <?php echo (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'executive') ? 'E-Portfolio' : 'E-Portfolio / Transcript'; ?>
+                    </a>
+                </li>
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
+                <li>
+                    <a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2">
+                        <i class="fa-regular fa-star"></i> คะแนนกิจกรรม
+                    </a>
+                </li>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['userrole']) && in_array($_SESSION['userrole'], ['academic_officer', 'club_president'])): ?>
                 <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <?php endif; ?>
             </ul>
         </div>
     </div>
 
     <div class="card">
         <div class="header-card">
-            <h3 class="text-left">ข้อมูล E-Poartfolio / Transcript</h3>
+            <h3 class="text-left">
+                <?php echo (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'executive') ? 'ข้อมูล E-Portfolio' : 'ข้อมูล E-Portfolio / Transcript'; ?>
+            </h3>
             <div class="search-add">
                 <div class="tab-func flex-wrap">
                     <input type="text" class="form-control search-name me-2 mb-2" placeholder="ค้นหาชื่อ/รหัส..."
@@ -310,6 +324,8 @@ while($y = $year_query->fetch_assoc()) {
                 <tbody>
                     <?php
     if ($result->num_rows > 0) {
+        $is_executive = ($_SESSION['userrole'] === 'executive');
+
         while ($row = $result->fetch_assoc()) {
             $role_key = $row['userrole'];
             $display_name = isset($role_names[$role_key]) ? $role_names[$role_key] : $role_key;
@@ -322,16 +338,17 @@ while($y = $year_query->fetch_assoc()) {
                     <td>{$row['academic_year']}</td>
                     <td>{$row['department']}</td>
                     <td>{$row['year_level']}</td>
-                   
                     <td class='btn-action1'>
                         <a href='admin_detail_E-portfolio.php?user_id={$row['user_id']}&action=portfolio' class='btn btn-outline-primary btn-sm'>
                             <i class='fa-solid fa-address-card'></i> E-portfolio
-                        </a>
-                        &nbsp;&nbsp;
+                        </a>";
+            if (!$is_executive) {
+                echo "&nbsp;&nbsp;
                         <a href='admin_detail_transcript.php?user_id={$row['user_id']}&action=transcript' class='btn btn-outline-warning btn-sm'>
                             <i class='fa-solid fa-file-lines'></i> Transcript
-                        </a>
-                    </td>
+                        </a>";
+            }
+            echo "    </td>
                 </tr>";
         }
     }

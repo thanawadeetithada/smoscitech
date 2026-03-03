@@ -196,12 +196,24 @@ $result = $conn->query($sql);
                             class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
                 <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
-                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li>
+                    <a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2">
+                        <i class="fa-regular fa-address-book"></i>
+                        <?php echo (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'executive') ? 'E-Portfolio' : 'E-Portfolio / Transcript'; ?>
+                    </a>
+                </li>
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
+                <li>
+                    <a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2">
+                        <i class="fa-regular fa-star"></i> คะแนนกิจกรรม
+                    </a>
+                </li>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['userrole']) && in_array($_SESSION['userrole'], ['academic_officer', 'club_president'])): ?>
                 <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <?php endif; ?>
             </ul>
         </div>
     </div>
@@ -212,10 +224,12 @@ $result = $conn->query($sql);
                     <h4 class="fw-bold mb-0">กิจกรรมสโมสร</h4>
                     <p class="text-muted mb-0">ค้นหาและลงทะเบียนเข้าร่วมกิจกรรม</p>
                 </div>
-                <a href="admin_create_Activity.php" class="btn btn-primary  shadow-sm btn-create-mobile"
+                <?php if ($_SESSION['userrole'] === 'club_president'): ?>
+                <a href="admin_create_Activity.php" class="btn btn-primary shadow-sm btn-create-mobile"
                     style="border-radius: 10px;">
                     <i class="fa-solid fa-plus-circle me-2"></i>สร้างกิจกรรมใหม่
                 </a>
+                <?php endif; ?>
             </div>
 
             <div class="search-container">
@@ -287,14 +301,25 @@ $result = $conn->query($sql);
                                     <?php echo ($row['total_capacity'] ?? 0); ?> คน
                                 </span>
                                 <div class="redirect-page d-flex gap-2">
+                                    <?php if ($_SESSION['userrole'] === 'club_president'): ?>
                                     <a href="admin_edit_activity.php?id=<?php echo $row['activity_id']; ?>"
                                         class="edit-link btn btn-warning">
-                                        แก้ไข</i>
+                                        แก้ไข
                                     </a>
                                     <a href="admin_manage_activity.php?id=<?php echo $row['activity_id']; ?>"
-                                        class="manage-link btn btn-primary ">
-                                        จัดการ</i>
+                                        class="manage-link btn btn-primary">
+                                        จัดการ
                                     </a>
+                                    <?php else: ?>
+                                    <a href="admin_edit_activity.php?id=<?php echo $row['activity_id']; ?>"
+                                        class="edit-link btn btn-warning">
+                                        ข้อมูล
+                                    </a>
+                                    <a href="admin_manage_activity.php?id=<?php echo $row['activity_id']; ?>"
+                                        class="manage-link btn btn-primary">
+                                        ผู้เข้าร่วม
+                                    </a>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

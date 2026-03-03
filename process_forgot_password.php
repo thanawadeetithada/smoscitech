@@ -30,7 +30,7 @@ try {
             $stmt->bind_param("sss", $token, $expiry, $email);
             $stmt->execute();
 
-            $resetLink = "http://localhost/shop-premium/reset_password.php?token=$token";
+            $resetLink = "http://localhost/smoscitech/reset_password.php?token=$token";
 
             $mail = new PHPMailer(true);
             $mail->CharSet = "UTF-8";

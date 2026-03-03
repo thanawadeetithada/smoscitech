@@ -2,15 +2,25 @@
 session_start();
 require 'db.php';
 
-$allowed_roles = ['executive', 'academic_officer', 'club_president'];
+$allowed_roles = ['academic_officer', 'club_president'];
 
 if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_roles)) {
     header("Location: index.php");
     exit();
 }
 
-$stmt = $conn->prepare("SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, academic_year, year_level, profile_image
-                        FROM users WHERE deleted_at IS NULL");
+$current_user_role = $_SESSION['userrole'];
+
+if ($current_user_role === 'academic_officer') {
+    $sql = "SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, academic_year, year_level, profile_image
+            FROM users WHERE deleted_at IS NULL";
+    $stmt = $conn->prepare($sql);
+} else if ($current_user_role === 'club_president') {
+    $sql = "SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, academic_year, year_level, profile_image
+            FROM users WHERE deleted_at IS NULL AND userrole = 'club_member'";
+    $stmt = $conn->prepare($sql);
+}
+
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -69,6 +79,7 @@ $role_names = [
     .table th,
     .table td {
         text-align: center;
+        vertical-align: middle;
         font-size: 14px;
 
     }
@@ -249,12 +260,24 @@ $role_names = [
                             class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
                 <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
-                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li>
+                    <a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2">
+                        <i class="fa-regular fa-address-book"></i>
+                        <?php echo (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'executive') ? 'E-Portfolio' : 'E-Portfolio / Transcript'; ?>
+                    </a>
+                </li>
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
+                <li>
+                    <a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2">
+                        <i class="fa-regular fa-star"></i> คะแนนกิจกรรม
+                    </a>
+                </li>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['userrole']) && in_array($_SESSION['userrole'], ['academic_officer', 'club_president'])): ?>
                 <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <?php endif; ?>
             </ul>
         </div>
     </div>
@@ -308,15 +331,17 @@ $role_names = [
                     <td>{$row['academic_year']}</td>
                     <td>{$display_name}</td> 
                     <td><img src='uploads/{$row['profile_image']}' width='50' height='50' class='rounded-circle'></td>
-                    <td class='btn-action1'>
-                        <a href='edit_user.php?user_id={$row['user_id']}' class='btn btn-warning btn-sm'>
-                            <i class='fa-solid fa-pencil'></i>
-                        </a>
-                        &nbsp;&nbsp;
-                        <a href='#' class='btn btn-danger btn-sm delete-btn' data-id='{$row['user_id']}'>
-                            <i class='fa-regular fa-trash-can'></i>
-                        </a>
-                    </td>
+                    <td class='btn-action1'>";
+
+            echo "<a href='edit_user.php?user_id={$row['user_id']}' class='btn btn-warning btn-sm'>
+                        <i class='fa-solid fa-pencil'></i>
+                    </a>
+                    &nbsp;&nbsp;
+                    <a href='#' class='btn btn-danger btn-sm delete-btn' data-id='{$row['user_id']}'>
+                        <i class='fa-regular fa-trash-can'></i>
+                    </a>";
+
+            echo "  </td>
                 </tr>";
         }
     }
@@ -324,7 +349,7 @@ $role_names = [
     ?>
                 </tbody>
                 <tr id="noResult" style="display:none;">
-                    <td colspan="13" class="text-center text-muted fw-bold bg-light py-3">
+                    <td colspan="10" class="text-center text-muted fw-bold bg-light py-3">
                         <i class="fa-solid fa-circle-info"></i> ไม่พบข้อมูลที่ค้นหา
                     </td>
                 </tr>

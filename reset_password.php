@@ -11,7 +11,7 @@ unset($_SESSION['modal_message'], $_SESSION['modal_type']);
 if (!isset($_GET['token']) || empty($_GET['token'])) {
     $_SESSION['modal_message'] = "Token ไม่ถูกต้อง!";
     $_SESSION['modal_type'] = "danger";
-    header("Location: login.php");
+    header("Location: index.php");
     exit;
 }
 
@@ -26,7 +26,7 @@ $result = $stmt->get_result();
 if ($result->num_rows === 0) {
     $_SESSION['modal_message'] = "ลิงก์นี้หมดอายุหรือไม่ถูกต้อง!";
     $_SESSION['modal_type'] = "danger";
-    header("Location: login.php");
+    header("Location: index.php");
     exit;
 }
 ?>
@@ -49,7 +49,7 @@ if ($result->num_rows === 0) {
         justify-content: center;
         align-items: center;
         height: 100vh;
-        background: url('bg/sky.png') no-repeat center center/cover;
+        background: #cfd8e5;
         margin: 0;
     }
 

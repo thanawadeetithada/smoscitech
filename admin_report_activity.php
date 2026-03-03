@@ -48,7 +48,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
 <html lang="th">
 
 <head>
-      <meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-title" content="App Premium">
     <meta name="application-name" content="App Premium">
@@ -164,12 +164,24 @@ if ($result_chart && $result_chart->num_rows > 0) {
                             class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
                 <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
-                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li>
+                    <a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2">
+                        <i class="fa-regular fa-address-book"></i>
+                        <?php echo (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'executive') ? 'E-Portfolio' : 'E-Portfolio / Transcript'; ?>
+                    </a>
+                </li>
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
+                <li>
+                    <a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2">
+                        <i class="fa-regular fa-star"></i> คะแนนกิจกรรม
+                    </a>
+                </li>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['userrole']) && in_array($_SESSION['userrole'], ['academic_officer', 'club_president'])): ?>
                 <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <?php endif; ?>
             </ul>
         </div>
     </div>
@@ -203,23 +215,24 @@ if ($result_chart && $result_chart->num_rows > 0) {
                 </div>
                 <div class="col-md-4 mb-3">
                     <a href="admin_activity.php" class="text-decoration-none text-dark">
-                    <div class="text-decoration-none text-dark">
-                        <div class="stat-card d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="text-muted fw-bold mb-1">รอการอนุมัติ</div>
-                                <h2 class="mb-0 fw-bold"><?php echo number_format($total_pending); ?></h2>
+                        <div class="text-decoration-none text-dark">
+                            <div class="stat-card d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted fw-bold mb-1">รอการอนุมัติ</div>
+                                    <h2 class="mb-0 fw-bold"><?php echo number_format($total_pending); ?></h2>
+                                </div>
+                                <div class="stat-icon bg-warning text-white"><i class="fas fa-clock"></i></div>
                             </div>
-                            <div class="stat-icon bg-warning text-white"><i class="fas fa-clock"></i></div>
                         </div>
-                    </div>
-                </a>
+                    </a>
                 </div>
             </div>
 
             <div class="row">
                 <div class="col-lg-8 mb-4">
                     <div class="stat-card">
-                        <h5 class="fw-bold mb-4"><i class="fas fa-chart-bar text-primary me-2"></i> สถิติการเข้าร่วมกิจกรรม (5 ล่าสุด)</h5>
+                        <h5 class="fw-bold mb-4"><i class="fas fa-chart-bar text-primary me-2"></i>
+                            สถิติการเข้าร่วมกิจกรรม (5 ล่าสุด)</h5>
                         <div style="position: relative; height: 320px; width: 100%;">
                             <canvas id="activityChart"></canvas>
                         </div>
@@ -228,7 +241,8 @@ if ($result_chart && $result_chart->num_rows > 0) {
 
                 <div class="col-lg-4 mb-4">
                     <div class="stat-card">
-                        <h5 class="fw-bold mb-3"><i class="fas fa-calendar-alt text-warning me-2"></i> กิจกรรมเร็วๆ นี้</h5>
+                        <h5 class="fw-bold mb-3"><i class="fas fa-calendar-alt text-warning me-2"></i> กิจกรรมเร็วๆ นี้
+                        </h5>
 
                         <?php 
                         $thai_months = [
@@ -244,18 +258,19 @@ if ($result_chart && $result_chart->num_rows > 0) {
                                 $month_num = date('m', $date_obj);
                                 $month_thai = $thai_months[$month_num];
                         ?>
-                                <div class="event-item">
-                                    <div class="event-date">
-                                        <span style="font-size: 20px; font-weight: 700; display: block;"><?php echo $day; ?></span>
-                                        <small style="font-size: 13px; font-weight: 500;"><?php echo $month_thai; ?></small>
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold text-dark mb-1"><?php echo htmlspecialchars($row['title']); ?></div>
-                                        <div class="text-muted small">
-                                            <i class="far fa-clock me-1"></i> <?php echo $row['hours_count']; ?> ชั่วโมง
-                                        </div>
-                                    </div>
+                        <div class="event-item">
+                            <div class="event-date">
+                                <span
+                                    style="font-size: 20px; font-weight: 700; display: block;"><?php echo $day; ?></span>
+                                <small style="font-size: 13px; font-weight: 500;"><?php echo $month_thai; ?></small>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark mb-1"><?php echo htmlspecialchars($row['title']); ?></div>
+                                <div class="text-muted small">
+                                    <i class="far fa-clock me-1"></i> <?php echo $row['hours_count']; ?> ชั่วโมง
                                 </div>
+                            </div>
+                        </div>
                         <?php 
                             }
                         } else {
@@ -264,7 +279,9 @@ if ($result_chart && $result_chart->num_rows > 0) {
                         ?>
 
                         <div class="text-center mt-4 pt-3 border-top">
-                            <a href="admin_activity.php" class="text-decoration-none fw-bold text-primary">ดูกิจกรรมทั้งหมด <i class="fas fa-arrow-right ms-1"></i></a>
+                            <a href="admin_activity.php"
+                                class="text-decoration-none fw-bold text-primary">ดูกิจกรรมทั้งหมด <i
+                                    class="fas fa-arrow-right ms-1"></i></a>
                         </div>
                     </div>
                 </div>
@@ -273,62 +290,73 @@ if ($result_chart && $result_chart->num_rows > 0) {
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const ctx = document.getElementById('activityChart').getContext('2d');
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('activityChart').getContext('2d');
 
-            const labels = <?php echo json_encode($chart_labels); ?>;
-            const dataCounts = <?php echo json_encode($chart_data); ?>;
+        const labels = <?php echo json_encode($chart_labels); ?>;
+        const dataCounts = <?php echo json_encode($chart_data); ?>;
 
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'จำนวนผู้ลงทะเบียน (คน)',
-                        data: dataCounts,
-                        backgroundColor: '#4e73df',
-                        hoverBackgroundColor: '#2e59d9',
-                        borderRadius: 6,
-                        barPercentage: 0.5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1,
-                                font: { family: 'Prompt' }
-                            },
-                            grid: {
-                                borderDash: [5, 5]
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'จำนวนผู้ลงทะเบียน (คน)',
+                    data: dataCounts,
+                    backgroundColor: '#4e73df',
+                    hoverBackgroundColor: '#2e59d9',
+                    borderRadius: 6,
+                    barPercentage: 0.5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            font: {
+                                family: 'Prompt'
                             }
                         },
-                        x: {
-                            ticks: {
-                                font: { family: 'Prompt' }
-                            },
-                            grid: {
-                                display: false
-                            }
+                        grid: {
+                            borderDash: [5, 5]
                         }
                     },
-                    plugins: {
-                        legend: {
-                            display: false
+                    x: {
+                        ticks: {
+                            font: {
+                                family: 'Prompt'
+                            }
                         },
-                        tooltip: {
-                            backgroundColor: 'rgba(0,0,0,0.8)',
-                            padding: 12,
-                            titleFont: { family: 'Prompt', size: 14 },
-                            bodyFont: { family: 'Prompt', size: 13 }
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 12,
+                        titleFont: {
+                            family: 'Prompt',
+                            size: 14
+                        },
+                        bodyFont: {
+                            family: 'Prompt',
+                            size: 13
                         }
                     }
                 }
-            });
+            }
         });
+    });
     </script>
 </body>
+
 </html>

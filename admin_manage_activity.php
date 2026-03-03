@@ -8,8 +8,16 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
+$can_edit = ($_SESSION['userrole'] === 'club_president');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
     header('Content-Type: application/json');
+   
+    if (!$can_edit) {
+        echo json_encode(['success' => false, 'message' => 'ไม่มีสิทธิ์ในการเปลี่ยนสถานะ']);
+        exit();
+    }
+
     $reg_id = intval($_POST['reg_id']);
     $new_status = $_POST['status'];
     
@@ -63,7 +71,8 @@ $registrations = $stmt_reg->get_result();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>จัดการกิจกรรม: <?php echo htmlspecialchars($activity['title']); ?></title>
+    <title><?php echo $can_edit ? 'จัดการกิจกรรม' : 'รายละเอียดกิจกรรม'; ?>:
+        <?php echo htmlspecialchars($activity['title']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
@@ -127,6 +136,11 @@ $registrations = $stmt_reg->get_result();
         font-weight: bold;
         border-radius: 8px;
         cursor: pointer;
+    }
+
+    .status-select:disabled {
+        cursor: not-allowed;
+        opacity: 0.8;
     }
 
     .status-pending {
@@ -211,12 +225,24 @@ $registrations = $stmt_reg->get_result();
                             class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
                 <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
-                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li>
+                    <a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2">
+                        <i class="fa-regular fa-address-book"></i>
+                        <?php echo (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'executive') ? 'E-Portfolio' : 'E-Portfolio / Transcript'; ?>
+                    </a>
+                </li>
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
+                <li>
+                    <a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2">
+                        <i class="fa-regular fa-star"></i> คะแนนกิจกรรม
+                    </a>
+                </li>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['userrole']) && in_array($_SESSION['userrole'], ['academic_officer', 'club_president'])): ?>
                 <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <?php endif; ?>
             </ul>
         </div>
     </div>
@@ -226,13 +252,16 @@ $registrations = $stmt_reg->get_result();
             <div>
                 <div class="flex-container">
                     <a href="admin_activity.php" class="btn mb-2 me-3"><i class="fas fa-arrow-left"></i></a>
-                    <h5 class="offcanvas-title text-muted">อนุมัติกิจกรรม</h5>
+                    <h5 class="offcanvas-title text-muted">
+                        <?php echo $can_edit ? 'อนุมัติกิจกรรม' : 'รายละเอียดกิจกรรม'; ?></h5>
                 </div>
                 <h2 class="fw-bold mb-1"><?php echo htmlspecialchars($activity['title']); ?></h2>
                 <span class="badge bg-<?php echo ($activity['status'] == 'open') ? 'success' : 'danger'; ?>">
                     สถานะกิจกรรม: <?php echo ucfirst($activity['status']); ?>
                 </span>
             </div>
+
+            <?php if($can_edit): ?>
             <div class="header-buttons">
                 <button class="btn btn-warning shadow-sm" onclick="prepareClose(<?php echo $activity_id; ?>)">
                     ปิดรับ
@@ -241,6 +270,7 @@ $registrations = $stmt_reg->get_result();
                     <i class="fas fa-trash"></i> ลบกิจกรรม
                 </button>
             </div>
+            <?php endif; ?>
         </div>
 
         <div class="row g-3 mb-4">
@@ -299,9 +329,11 @@ $registrations = $stmt_reg->get_result();
                             <td class="small text-muted">
                                 <?php echo date('d/m/y H:i', strtotime($reg['registered_at'])); ?></td>
                             <td class="text-center">
-                                <select class="form-select form-select-sm status-select <?php echo $select_class; ?>"
+                                <select
+                                    class="text-center form-select form-select-sm status-select <?php echo $select_class; ?>"
                                     data-reg-id="<?php echo $reg['registration_id']; ?>"
-                                    style="min-width: 130px; margin: 0 auto;">
+                                    style="min-width: 130px; margin: 0 auto; width: fit-content;"
+                                    <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     <option value="pending" class="bg-white text-dark"
                                         <?php if($reg['registration_status'] == 'pending') echo 'selected'; ?>>รอพิจารณา
                                     </option>
@@ -317,7 +349,7 @@ $registrations = $stmt_reg->get_result();
                         <?php endwhile; ?>
                         <?php else: ?>
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="5" class="text-center py-5 text-muted">
                                 <i class="fa-regular fa-folder-open fa-3x mb-3 opacity-50"></i><br>
                                 ยังไม่มีผู้ลงทะเบียนในกิจกรรมนี้
                             </td>
@@ -329,6 +361,7 @@ $registrations = $stmt_reg->get_result();
         </div>
     </div>
 
+    <?php if($can_edit): ?>
     <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content text-center" style="border-radius: 20px; border: none;">
@@ -371,9 +404,13 @@ $registrations = $stmt_reg->get_result();
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    // สคริปต์แก้ไข/ลบ จะทำงานก็ต่อเมื่อมีสิทธิ์
+    <?php if($can_edit): ?>
+
     function prepareDelete(id) {
         const myModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
         const confirmBtn = document.getElementById('confirmDeleteBtn');
@@ -440,6 +477,7 @@ $registrations = $stmt_reg->get_result();
                 });
         });
     });
+    <?php endif; ?>
     </script>
 </body>
 
