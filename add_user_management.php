@@ -9,7 +9,6 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-
 $error_message = "";
 $registration_success = false;
 $profile_image = "default.png";
@@ -90,14 +89,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (empty($error_message)) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        
-        // เพิ่ม year_level เข้าไปใน SQL
         $sql = "INSERT INTO users (first_name, last_name, email, idstudent, password, academic_year, year_level, department, profile_image, userrole) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try {
             $stmt = $conn->prepare($sql);
-            // เพิ่มตัวแปร $year_level และเปลี่ยน "s" ให้ครบ 10 ตัว
             $stmt->bind_param("ssssssssss", $first_name, $last_name, $email, $idstudent, $hashed_password, $academic_year, $year_level, $department, $profile_image, $userrole);
             $stmt->execute();
             $registration_success = true;
@@ -276,7 +272,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
                 style="cursor: pointer;"></i>
             <div class="nav-item">
-                <a class="nav-link" href="logout.php"><i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
+                <a class="nav-link text-white" href="logout.php">
+                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
     </nav>

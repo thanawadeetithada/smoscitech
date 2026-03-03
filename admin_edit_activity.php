@@ -2,14 +2,12 @@
 session_start();
 include 'db.php';
 
-// 1. ตรวจสอบสิทธิ์
 $allowed_roles = ['executive', 'academic_officer', 'club_president'];
 if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_roles)) {
     header("Location: index.php");
     exit();
 }
 
-// 2. รับ ID และดึงข้อมูลกิจกรรมเดิม
 $activity_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $sql = "SELECT * FROM activities WHERE activity_id = ?";
 $stmt = $conn->prepare($sql);
@@ -21,14 +19,12 @@ if (!$activity) {
     die("ไม่พบข้อมูลกิจกรรม");
 }
 
-// 3. ดึงข้อมูลหน้าที่/ฝ่ายงานเดิม
 $sql_tasks = "SELECT * FROM activity_tasks WHERE activity_id = ?";
 $stmt_tasks = $conn->prepare($sql_tasks);
 $stmt_tasks->bind_param("i", $activity_id);
 $stmt_tasks->execute();
 $tasks_result = $stmt_tasks->get_result();
 
-// 4. ดึงข้อมูล "ปีการศึกษา" แบบไม่ซ้ำจากตาราง users
 $academic_years = [];
 $sql_years = "SELECT DISTINCT academic_year FROM users WHERE academic_year IS NOT NULL AND academic_year != '' ORDER BY academic_year DESC";
 $result_years = $conn->query($sql_years);
@@ -38,7 +34,6 @@ if ($result_years && $result_years->num_rows > 0) {
     }
 }
 
-// 5. กำหนด Array สำหรับ "ชั้นปี" และ "สาขาวิชา"
 $year_levels = ["ชั้นปีที่ 1", "ชั้นปีที่ 2", "ชั้นปีที่ 3", "ชั้นปีที่ 4"];
 $depts = [
     "วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "นวัตกรรมและธุรกิจอาหาร", 
@@ -46,7 +41,6 @@ $depts = [
     "ฟิสิกส์", "เคมี (ค.บ.)", "ชีววิทยา", "คณิตศาสตร์ประยุกต์"
 ];
 
-// 6. แปลงข้อมูลเงื่อนไขเดิมจาก Database ให้เป็น Array เพื่อทำ Pre-selected
 $current_year_levels = !empty($activity['allowed_year_level']) ? explode(',', $activity['allowed_year_level']) : [];
 $current_academic_years = !empty($activity['allowed_academic_year']) ? explode(',', $activity['allowed_academic_year']) : [];
 $current_departments = !empty($activity['allowed_department']) ? explode(',', $activity['allowed_department']) : [];
@@ -140,7 +134,8 @@ $current_departments = !empty($activity['allowed_department']) ? explode(',', $a
             <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
                 style="cursor: pointer;"></i>
             <div class="nav-item">
-                <a class="nav-link text-white" href="logout.php"><i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
+                <a class="nav-link text-white" href="logout.php">
+                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
     </nav>
@@ -152,11 +147,16 @@ $current_departments = !empty($activity['allowed_department']) ? explode(',', $a
         </div>
         <div class="offcanvas-body">
             <ul class="list-unstyled">
-                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
-                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
-                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
+                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
+                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
+                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
             </ul>
         </div>
     </div>
@@ -317,7 +317,6 @@ $current_departments = !empty($activity['allowed_department']) ? explode(',', $a
 
     <script>
     $(document).ready(function() {
-        // เริ่มต้นการใช้งาน Select2
         $('.select2-multiple').select2({
             theme: 'bootstrap-5',
             width: '100%',

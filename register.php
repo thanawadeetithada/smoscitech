@@ -425,14 +425,13 @@ if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
         reader.onload = function() {
             if (reader.readyState === 2) {
                 imageField.src = reader.result;
-                imageField.style.display = "inline-block"; // แสดงรูปเมื่อโหลดข้อมูลเสร็จ
+                imageField.style.display = "inline-block";
             }
         }
 
         if (event.target.files && event.target.files[0]) {
             reader.readAsDataURL(event.target.files[0]);
         } else {
-            // หากไม่มีการเลือกไฟล์ หรือกดยกเลิก ให้ซ่อนรูปภาพ
             imageField.src = "";
             imageField.style.display = "none";
         }
@@ -445,8 +444,6 @@ if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
             "<i class='fa-solid fa-circle-check text-success fa-2x mb-2'></i><br>สมัครสมาชิกเรียบร้อยแล้ว"
         );
         $("#statusModal").modal("show");
-
-        // เมื่อปิด Modal ให้ไปหน้า login หรือหน้าจัดการ
         $("#statusModal").on('hidden.bs.modal', function() {
             window.location.href = 'index.php';
         });

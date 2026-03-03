@@ -232,8 +232,7 @@ $role_names = [
             <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
                 style="cursor: pointer;"></i>
             <div class="nav-item">
-                <a class="nav-link" href="logout.php">
-                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'ตรวจสอบไม่พบ Role'; ?> ]
+                <a class="nav-link text-white" href="logout.php">
                     <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
@@ -262,7 +261,7 @@ $role_names = [
 
     <div class="card">
         <div class="header-card">
-            <h3 class="text-left">รายชื่อ</h3>
+            <h3 class="text-left">ข้อมูลผู้ใช้งาน</h3>
             <div class="search-add">
                 <div class="tab-func">
                     <button type="button" class="btn btn-primary"

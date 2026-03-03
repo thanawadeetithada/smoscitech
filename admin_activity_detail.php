@@ -66,7 +66,8 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
             <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
                 style="cursor: pointer;"></i>
             <div class="nav-item">
-                <a class="nav-link text-white" href="logout.php"><i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
+                <a class="nav-link text-white" href="logout.php">
+                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
     </nav>

@@ -2,7 +2,6 @@
 session_start();
 include 'db.php';
 
-// ตรวจสอบว่ามีการล็อกอินหรือไม่
 if (!isset($_SESSION['user_id'])) {
     header("Location: index.php");
     exit();
@@ -12,7 +11,6 @@ $user_id = $_SESSION['user_id'];
 $message = '';
 $msg_type = '';
 
-// จัดการเมื่อมีการกดปุ่ม "บันทึกข้อมูล"
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
     $idstudent = trim($_POST['idstudent']);
     $first_name = trim($_POST['first_name']);
@@ -22,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
     $year_level = $_POST['year_level'];
     $department = trim($_POST['department']);
     
-    // 1. ตรวจสอบว่า รหัสนักศึกษาที่แก้ไข ซ้ำกับคนอื่นในระบบหรือไม่
     $check_sql = "SELECT user_id FROM users WHERE idstudent = ? AND user_id != ?";
     $stmt_check = $conn->prepare($check_sql);
     $stmt_check->bind_param("si", $idstudent, $user_id);
@@ -33,7 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
         $message = "รหัสนักศึกษานี้มีผู้ใช้งานอื่นลงทะเบียนไว้แล้ว โปรดตรวจสอบอีกครั้ง";
         $msg_type = "warning";
     } else {
-        // 2. จัดการอัปโหลดรูปภาพ (ถ้ามีการเลือกรูปใหม่)
         $profile_image = $_POST['current_image'];
         if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
             $ext = pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION);
@@ -55,7 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
             }
         }
 
-        // 3. อัปเดตข้อมูลในฐานข้อมูล (ถ้าไม่มี Error ใดๆ ก่อนหน้า)
         if (empty($message)) {
             $sql = "UPDATE users SET 
                     idstudent = ?,
@@ -75,7 +70,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
                 $message = "อัปเดตข้อมูลส่วนตัวเรียบร้อยแล้ว";
                 $msg_type = "success";
                 
-                // อัปเดต Session ใหม่
                 $_SESSION['idstudent'] = $idstudent;
                 $_SESSION['first_name'] = $first_name;
                 $_SESSION['last_name'] = $last_name;
@@ -93,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
     $stmt_check->close();
 }
 
-// ดึงข้อมูลล่าสุดจาก Database มาแสดงผล
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $user_id);
@@ -195,13 +188,12 @@ $stmt_user->close();
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-dark px-3">
+     <nav class="navbar navbar-dark bg-dark px-3">
         <div class="d-flex w-100 justify-content-between align-items-center">
             <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
                 style="cursor: pointer;"></i>
             <div class="nav-item">
                 <a class="nav-link text-white" href="logout.php">
-                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'ตรวจสอบไม่พบ Role'; ?> ]
                     <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
@@ -214,16 +206,21 @@ $stmt_user->close();
         </div>
         <div class="offcanvas-body">
             <ul class="list-unstyled">
-                <li><a href="report_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-address-book"></i> E-Portfolio </a></li>
-                <li><a href="transcript.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-file-lines"></i> Transcript</a></li>
-                <li><a href="score_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
-                <li><a href="user_management.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <li><a href="report_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
+                <li><a href="activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
+                <li><a href="e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-address-book"></i> E-Portfolio </a></li>
+                <li><a href="transcript.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-file-lines"></i> Transcript</a></li>
+                <li><a href="score_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li><a href="user_management.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
             </ul>
         </div>
     </div>
-
     <div class="main-content">
         <div class="container-fluid">
             <h3 class="fw-bold mb-4">ตั้งค่าข้อมูลส่วนตัว</h3>

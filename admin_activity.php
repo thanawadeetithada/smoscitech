@@ -180,7 +180,6 @@ $result = $conn->query($sql);
                 style="cursor: pointer;"></i>
             <div class="nav-item">
                 <a class="nav-link text-white" href="logout.php">
-                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'ตรวจสอบไม่พบ Role'; ?> ]
                     <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
@@ -352,18 +351,12 @@ $result = $conn->query($sql);
             const selectedStatus = statusFilter.value;
 
             activityItems.forEach(item => {
-                // ดึงชื่อกิจกรรมจากการ์ด
                 const titleElement = item.querySelector('.activity-title');
                 const titleText = titleElement ? titleElement.innerText.toLowerCase() : '';
-
-                // ดึงสถานะจากการ์ด
                 const itemStatus = item.getAttribute('data-status');
-
-                // เช็คเงื่อนไขว่าตรงกับที่ค้นหาไหม
                 const matchesSearch = titleText.includes(searchTerm);
                 const matchesStatus = (selectedStatus === 'all') || (itemStatus === selectedStatus);
 
-                // ถ้าตรงทั้งคำค้นหาและสถานะ ให้แสดงผล (block) ถ้าไม่ให้ซ่อน (none)
                 if (matchesSearch && matchesStatus) {
                     item.style.display = 'block';
                 } else {
@@ -372,7 +365,6 @@ $result = $conn->query($sql);
             });
         }
 
-        // เมื่อมีการพิมพ์ในช่องค้นหา หรือ เปลี่ยน Dropdown ให้เรียกฟังก์ชันกรองข้อมูล
         searchInput.addEventListener('keyup', filterActivities);
         statusFilter.addEventListener('change', filterActivities);
     });

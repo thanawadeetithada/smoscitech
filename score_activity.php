@@ -2,7 +2,6 @@
 session_start();
 include 'db.php';
 
-// เช็คการล็อกอิน
 if (!isset($_SESSION['user_id'])) {
     header("Location: index.php");
     exit();
@@ -10,15 +9,11 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// ==========================================
-// 1. จัดการการอัปโหลดหลักฐาน
-// ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_evidence'])) {
     $reg_id = intval($_POST['registration_id']);
     $description = trim($_POST['description']);
     $image_path = '';
 
-    // จัดการไฟล์อัปโหลด
     if (isset($_FILES['evidence_file']) && $_FILES['evidence_file']['error'] === 0) {
         $file_name = $_FILES['evidence_file']['name'];
         $file_tmp = $_FILES['evidence_file']['tmp_name'];
@@ -59,13 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_evidence'])) {
     exit();
 }
 
-// ==========================================
-// 1.5 จัดการการลบหลักฐาน (ล็อคให้ลบได้เฉพาะสถานะ waiting เท่านั้น)
-// ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_evidence'])) {
     $evidence_id = intval($_POST['evidence_id']);
-
-    // ดึงข้อมูลเช็คความปลอดภัย: ต้องเป็นไฟล์ของตัวเอง และ สถานะต้องยังไม่ถูกประเมิน (waiting หรือ ว่างเปล่า)
     $sql_get = "SELECT ae.image_path 
                 FROM activity_evidences ae 
                 JOIN activity_registrations ar ON ae.registration_id = ar.registration_id 
@@ -80,13 +70,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_evidence'])) {
 
     if ($row = $res_get->fetch_assoc()) {
         $file_to_delete = 'uploads/evidences/' . $row['image_path'];
-        
-        // ลบไฟล์ออกจากโฟลเดอร์
         if (!empty($row['image_path']) && file_exists($file_to_delete)) {
             unlink($file_to_delete);
         }
 
-        // ลบข้อมูลออกจากฐานข้อมูล
         $sql_del = "DELETE FROM activity_evidences WHERE evidence_id = ?";
         $stmt_del = $conn->prepare($sql_del);
         $stmt_del->bind_param("i", $evidence_id);
@@ -98,7 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_evidence'])) {
         }
         $stmt_del->close();
     } else {
-        // กรณีดักจับได้ว่าพยายามลบตอนสถานะเปลี่ยนไปแล้ว
         $_SESSION['status_modal'] = ['type' => 'error', 'title' => 'ไม่อนุญาต', 'message' => 'ไม่สามารถลบได้ แอดมินได้ประเมินผลกิจกรรมนี้ไปแล้ว'];
     }
     $stmt_get->close();
@@ -107,9 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_evidence'])) {
     exit();
 }
 
-// ==========================================
-// 2. ดึงข้อมูลกิจกรรมที่ได้รับการอนุมัติแล้ว
-// ==========================================
 $approved_activities = [];
 $reg_ids = [];
 
@@ -139,9 +122,6 @@ while ($row = $result_act->fetch_assoc()) {
 }
 $stmt->close();
 
-// ==========================================
-// 3. ดึงหลักฐานที่เคยส่งไปแล้ว
-// ==========================================
 $evidences = [];
 if (!empty($reg_ids)) {
     $placeholders = implode(',', array_fill(0, count($reg_ids), '?'));
@@ -182,27 +162,63 @@ if (!empty($reg_ids)) {
         --sidebar-width: 250px;
     }
 
-    body { font-family: 'Prompt', sans-serif; background-color: #f8f9fc; margin: 0; }
-    .nav-item a { color: white; margin-right: 1rem; }
-    .navbar { padding: 20px; }
-    .nav-link:hover { color: white; }
-    .main-content { margin: 30px; padding: 20px; max-width: 1000px; margin-left: auto; margin-right: auto; }
-    
-    .act-card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; overflow: hidden; }
-    .act-header { background: linear-gradient(45deg, #3a7bd5, #00d2ff); padding: 15px 20px; color: white; }
-    .status-badge { font-size: 0.9rem; padding: 8px 15px; border-radius: 30px; font-weight: bold; }
-    
-    /* CSS สำหรับกล่องหลักฐานให้ลบได้ */
-    .evidence-box { 
-        background-color: #f8f9fc; 
-        border: 1px dashed #d1d3e2; 
-        border-radius: 10px; 
-        padding: 15px; 
-        margin-top: 15px; 
-        position: relative; 
+    body {
+        font-family: 'Prompt', sans-serif;
+        background-color: #f8f9fc;
+        margin: 0;
     }
-    
-    /* CSS ปุ่มถังขยะ */
+
+    .nav-item a {
+        color: white;
+        margin-right: 1rem;
+    }
+
+    .navbar {
+        padding: 20px;
+    }
+
+    .nav-link:hover {
+        color: white;
+    }
+
+    .main-content {
+        margin: 30px;
+        padding: 20px;
+        max-width: 1000px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .act-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+
+    .act-header {
+        background: linear-gradient(45deg, #3a7bd5, #00d2ff);
+        padding: 15px 20px;
+        color: white;
+    }
+
+    .status-badge {
+        font-size: 0.9rem;
+        padding: 8px 15px;
+        border-radius: 30px;
+        font-weight: bold;
+    }
+
+    .evidence-box {
+        background-color: #f8f9fc;
+        border: 1px dashed #d1d3e2;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 15px;
+        position: relative;
+    }
+
     .btn-delete-evidence {
         position: absolute;
         top: 10px;
@@ -218,20 +234,35 @@ if (!empty($reg_ids)) {
         justify-content: center;
         cursor: pointer;
         transition: 0.2s;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     }
+
     .btn-delete-evidence:hover {
         background-color: #e74a3b;
         color: white;
         transform: scale(1.1);
     }
 
-    .btn-purple { background-color: #96a1cd; color: white; border: none; }
-    .btn-purple:hover { background-color: #7e89b3; color: white; }
-    .bg-purple { background-color: #96a1cd !important; }
+    .btn-purple {
+        background-color: #96a1cd;
+        color: white;
+        border: none;
+    }
+
+    .btn-purple:hover {
+        background-color: #7e89b3;
+        color: white;
+    }
+
+    .bg-purple {
+        background-color: #96a1cd !important;
+    }
 
     @media (max-width: 768px) {
-        .main-content { margin: 10px; padding: 10px; }
+        .main-content {
+            margin: 10px;
+            padding: 10px;
+        }
     }
     </style>
 </head>
@@ -239,12 +270,11 @@ if (!empty($reg_ids)) {
 <body>
     <nav class="navbar navbar-dark bg-dark px-3">
         <div class="d-flex w-100 justify-content-between align-items-center">
-            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" style="cursor: pointer;"></i>
+            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
+                style="cursor: pointer;"></i>
             <div class="nav-item">
                 <a class="nav-link text-white" href="logout.php">
-                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'User'; ?> ]
-                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout
-                </a>
+                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
     </nav>
@@ -275,18 +305,17 @@ if (!empty($reg_ids)) {
     <div class="main-content">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h4 class="fw-bold mb-0 text-gray-800"><i class="fa-solid fa-medal text-warning me-2"></i> ผลการเข้าร่วมกิจกรรม</h4>
+                <h4 class="fw-bold mb-0 text-gray-800"><i class="fa-solid fa-medal text-warning me-2"></i>
+                    ผลการเข้าร่วมกิจกรรม</h4>
                 <p class="text-muted mb-0">ส่งหลักฐานและติดตามผลการประเมินกิจกรรมของคุณ</p>
             </div>
         </div>
 
         <?php if (count($approved_activities) > 0): ?>
-            <?php foreach ($approved_activities as $act): 
+        <?php foreach ($approved_activities as $act): 
                 $reg_id = $act['registration_id'];
                 $status = $act['participation_status'];
                 $has_evidence = isset($evidences[$reg_id]);
-
-                // กำหนดป้ายสถานะ
                 $badge_class = 'bg-warning text-dark';
                 $badge_text = '<i class="fa-solid fa-hourglass-half"></i> รอผลประเมิน';
                 
@@ -298,151 +327,177 @@ if (!empty($reg_ids)) {
                     $badge_text = '<i class="fa-solid fa-times-circle"></i> ไม่ผ่านกิจกรรม';
                 }
             ?>
-            
-            <div class="act-card card">
-                <div class="act-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-truncate" style="max-width: 70%;" title="<?php echo htmlspecialchars($act['title']); ?>">
-                        <?php echo htmlspecialchars($act['title']); ?>
-                    </h5>
-                    <span class="status-badge shadow-sm <?php echo $badge_class; ?>">
-                        <?php echo $badge_text; ?>
-                    </span>
+
+        <div class="act-card card">
+            <div class="act-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-truncate" style="max-width: 70%;"
+                    title="<?php echo htmlspecialchars($act['title']); ?>">
+                    <?php echo htmlspecialchars($act['title']); ?>
+                </h5>
+                <span class="status-badge shadow-sm <?php echo $badge_class; ?>">
+                    <?php echo $badge_text; ?>
+                </span>
+            </div>
+
+            <div class="card-body p-4">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong class="text-primary"><i class="fa-solid fa-user-tag me-1"></i>
+                                หน้าที่/ฝ่าย:</strong> <?php echo htmlspecialchars($act['task_name'] ?? '-'); ?></p>
+                        <p class="mb-1"><strong class="text-primary"><i class="fa-regular fa-clock me-1"></i>
+                                ชั่วโมง:</strong> <?php echo $act['hours_count']; ?> ชั่วโมง</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong class="text-primary"><i class="fa-regular fa-calendar me-1"></i>
+                                วันที่จัด:</strong> <?php echo date('d/m/Y', strtotime($act['start_date'])); ?></p>
+                    </div>
                 </div>
-                
-                <div class="card-body p-4">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <p class="mb-1"><strong class="text-primary"><i class="fa-solid fa-user-tag me-1"></i> หน้าที่/ฝ่าย:</strong> <?php echo htmlspecialchars($act['task_name'] ?? '-'); ?></p>
-                            <p class="mb-1"><strong class="text-primary"><i class="fa-regular fa-clock me-1"></i> ชั่วโมง:</strong> <?php echo $act['hours_count']; ?> ชั่วโมง</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="mb-1"><strong class="text-primary"><i class="fa-regular fa-calendar me-1"></i> วันที่จัด:</strong> <?php echo date('d/m/Y', strtotime($act['start_date'])); ?></p>
-                        </div>
-                    </div>
 
-                    <hr>
+                <hr>
 
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-paperclip me-1 text-secondary"></i> หลักฐานที่ส่งแล้ว</h6>
-                        
-                        <?php if (empty($status) || $status == 'waiting'): ?>
-                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#uploadModal_<?php echo $reg_id; ?>">
-                                <i class="fa-solid fa-plus"></i> ส่งหลักฐานเพิ่ม
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-paperclip me-1 text-secondary"></i>
+                        หลักฐานที่ส่งแล้ว</h6>
+
+                    <?php if (empty($status) || $status == 'waiting'): ?>
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                        data-bs-toggle="modal" data-bs-target="#uploadModal_<?php echo $reg_id; ?>">
+                        <i class="fa-solid fa-plus"></i> ส่งหลักฐานเพิ่ม
+                    </button>
+                    <?php endif; ?>
+                </div>
+
+                <?php if ($has_evidence): ?>
+                <div class="row g-2 mt-2">
+                    <?php foreach ($evidences[$reg_id] as $ev): ?>
+                    <div class="col-md-6">
+                        <div class="evidence-box">
+                            <?php if (empty($status) || $status == 'waiting'): ?>
+                            <button type="button" class="btn-delete-evidence" data-bs-toggle="modal"
+                                data-bs-target="#deleteEvidenceModal_<?php echo $ev['evidence_id']; ?>"
+                                title="ลบหลักฐาน">
+                                <i class="fa-solid fa-trash-can"></i>
                             </button>
-                        <?php endif; ?>
-                    </div>
+                            <?php endif; ?>
 
-                    <?php if ($has_evidence): ?>
-                        <div class="row g-2 mt-2">
-                            <?php foreach ($evidences[$reg_id] as $ev): ?>
-                                <div class="col-md-6">
-                                    <div class="evidence-box">
-                                        <?php if (empty($status) || $status == 'waiting'): ?>
-                                            <button type="button" class="btn-delete-evidence" data-bs-toggle="modal" data-bs-target="#deleteEvidenceModal_<?php echo $ev['evidence_id']; ?>" title="ลบหลักฐาน">
-                                                <i class="fa-solid fa-trash-can"></i>
-                                            </button>
-                                        <?php endif; ?>
+                            <?php if (!empty($ev['description'])): ?>
+                            <p class="small mb-2 text-muted pe-4">"<?php echo htmlspecialchars($ev['description']); ?>"
+                            </p>
+                            <?php endif; ?>
 
-                                        <?php if (!empty($ev['description'])): ?>
-                                            <p class="small mb-2 text-muted pe-4">"<?php echo htmlspecialchars($ev['description']); ?>"</p>
-                                        <?php endif; ?>
-                                        
-                                        <?php if (!empty($ev['image_path'])): ?>
-                                            <?php 
+                            <?php if (!empty($ev['image_path'])): ?>
+                            <?php 
                                             $ext = strtolower(pathinfo($ev['image_path'], PATHINFO_EXTENSION));
                                             if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])): 
                                             ?>
-                                                <a href="uploads/evidences/<?php echo $ev['image_path']; ?>" target="_blank">
-                                                    <img src="uploads/evidences/<?php echo $ev['image_path']; ?>" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px;" class="border">
-                                                </a>
-                                                <span class="small ms-2 text-primary">คลิกเพื่อดูรูป</span>
-                                            <?php else: ?>
-                                                <a href="uploads/evidences/<?php echo $ev['image_path']; ?>" target="_blank" class="btn btn-sm btn-light border text-primary">
-                                                    <i class="fa-solid fa-file-arrow-down"></i> ไฟล์แนบ
-                                                </a>
-                                            <?php endif; ?>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
+                            <a href="uploads/evidences/<?php echo $ev['image_path']; ?>" target="_blank">
+                                <img src="uploads/evidences/<?php echo $ev['image_path']; ?>"
+                                    style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px;"
+                                    class="border">
+                            </a>
+                            <span class="small ms-2 text-primary">คลิกเพื่อดูรูป</span>
+                            <?php else: ?>
+                            <a href="uploads/evidences/<?php echo $ev['image_path']; ?>" target="_blank"
+                                class="btn btn-sm btn-light border text-primary">
+                                <i class="fa-solid fa-file-arrow-down"></i> ไฟล์แนบ
+                            </a>
+                            <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
 
-                                <?php if (empty($status) || $status == 'waiting'): ?>
-                                <div class="modal fade" id="deleteEvidenceModal_<?php echo $ev['evidence_id']; ?>" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content shadow-lg" style="border-radius: 20px; border: none;">
-                                            <div class="modal-header bg-danger text-white border-0">
-                                                <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i> ยืนยันการลบหลักฐาน</h5>
-                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body text-center py-4">
-                                                <div class="mb-4 mt-2">
-                                                    <div style="width: 80px; height: 80px; background-color: #ffe5e5; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
-                                                        <i class="fa-regular fa-trash-can text-danger" style="font-size: 2.5rem;"></i>
-                                                    </div>
-                                                </div>
-                                                <h5 class="text-dark fw-bold mb-2">ต้องการลบหลักฐานนี้หรือไม่?</h5>
-                                                <p class="text-muted small mb-0">หากลบแล้วข้อมูลและไฟล์จะหายไปอย่างถาวร</p>
-                                            </div>
-                                            <div class="modal-footer border-0 justify-content-center pb-4">
-                                                <button type="button" class="btn btn-light border px-4 rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
-                                                <form action="" method="POST" class="d-inline">
-                                                    <input type="hidden" name="evidence_id" value="<?php echo $ev['evidence_id']; ?>">
-                                                    <button type="submit" name="delete_evidence" class="btn btn-danger px-4 rounded-pill shadow-sm">ยืนยันการลบ</button>
-                                                </form>
-                                            </div>
+                    <?php if (empty($status) || $status == 'waiting'): ?>
+                    <div class="modal fade" id="deleteEvidenceModal_<?php echo $ev['evidence_id']; ?>" tabindex="-1"
+                        aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content shadow-lg" style="border-radius: 20px; border: none;">
+                                <div class="modal-header bg-danger text-white border-0">
+                                    <h5 class="modal-title fw-bold"><i
+                                            class="fa-solid fa-triangle-exclamation me-2"></i> ยืนยันการลบหลักฐาน</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body text-center py-4">
+                                    <div class="mb-4 mt-2">
+                                        <div
+                                            style="width: 80px; height: 80px; background-color: #ffe5e5; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
+                                            <i class="fa-regular fa-trash-can text-danger"
+                                                style="font-size: 2.5rem;"></i>
                                         </div>
                                     </div>
+                                    <h5 class="text-dark fw-bold mb-2">ต้องการลบหลักฐานนี้หรือไม่?</h5>
+                                    <p class="text-muted small mb-0">หากลบแล้วข้อมูลและไฟล์จะหายไปอย่างถาวร</p>
                                 </div>
-                                <?php endif; ?>
-
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center py-3 bg-light rounded-3 mt-2 border">
-                            <p class="text-muted small mb-0">ยังไม่มีหลักฐานการเข้าร่วม</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <div class="modal fade" id="uploadModal_<?php echo $reg_id; ?>" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header bg-primary text-white">
-                            <h5 class="modal-title fw-bold"><i class="fa-solid fa-cloud-arrow-up me-2"></i> ส่งหลักฐานการเข้าร่วม</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form action="" method="POST" enctype="multipart/form-data">
-                            <div class="modal-body p-4">
-                                <input type="hidden" name="registration_id" value="<?php echo $reg_id; ?>">
-                                
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold text-primary">อธิบาย/รายละเอียด (ถ้ามี)</label>
-                                    <textarea name="description" class="form-control" rows="3" placeholder="พิมพ์ข้อความอธิบายหลักฐาน..."></textarea>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold text-primary">แนบไฟล์รูปภาพ หรือ เอกสาร</label>
-                                    <input type="file" name="evidence_file" class="form-control" accept="image/*,.pdf,.doc,.docx">
-                                    <div class="form-text mt-2"><i class="fa-solid fa-circle-info text-warning"></i> รองรับไฟล์รูปภาพ, PDF, Word</div>
+                                <div class="modal-footer border-0 justify-content-center pb-4">
+                                    <button type="button" class="btn btn-light border px-4 rounded-pill"
+                                        data-bs-dismiss="modal">ยกเลิก</button>
+                                    <form action="" method="POST" class="d-inline">
+                                        <input type="hidden" name="evidence_id"
+                                            value="<?php echo $ev['evidence_id']; ?>">
+                                        <button type="submit" name="delete_evidence"
+                                            class="btn btn-danger px-4 rounded-pill shadow-sm">ยืนยันการลบ</button>
+                                    </form>
                                 </div>
                             </div>
-                            <div class="modal-footer bg-light border-0">
-                                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
-                                <button type="submit" name="upload_evidence" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">บันทึกและส่ง</button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
+                    <?php endif; ?>
+
+                    <?php endforeach; ?>
+                </div>
+                <?php else: ?>
+                <div class="text-center py-3 bg-light rounded-3 mt-2 border">
+                    <p class="text-muted small mb-0">ยังไม่มีหลักฐานการเข้าร่วม</p>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="modal fade" id="uploadModal_<?php echo $reg_id; ?>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title fw-bold"><i class="fa-solid fa-cloud-arrow-up me-2"></i>
+                            ส่งหลักฐานการเข้าร่วม</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="" method="POST" enctype="multipart/form-data">
+                        <div class="modal-body p-4">
+                            <input type="hidden" name="registration_id" value="<?php echo $reg_id; ?>">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-primary">อธิบาย/รายละเอียด (ถ้ามี)</label>
+                                <textarea name="description" class="form-control" rows="3"
+                                    placeholder="พิมพ์ข้อความอธิบายหลักฐาน..."></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-primary">แนบไฟล์รูปภาพ หรือ เอกสาร</label>
+                                <input type="file" name="evidence_file" class="form-control"
+                                    accept="image/*,.pdf,.doc,.docx">
+                                <div class="form-text mt-2"><i class="fa-solid fa-circle-info text-warning"></i>
+                                    รองรับไฟล์รูปภาพ, PDF, Word</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light border-0">
+                            <button type="button" class="btn btn-secondary rounded-pill px-4"
+                                data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" name="upload_evidence"
+                                class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">บันทึกและส่ง</button>
+                        </div>
+                    </form>
                 </div>
             </div>
+        </div>
 
-            <?php endforeach; ?>
+        <?php endforeach; ?>
         <?php else: ?>
-            <div class="card border-0 shadow-sm rounded-4 p-5 text-center mt-4">
-                <i class="fa-regular fa-folder-open fa-4x text-muted mb-3"></i>
-                <h5 class="text-muted fw-bold">คุณยังไม่มีกิจกรรมที่ได้รับการอนุมัติให้เข้าร่วม</h5>
-                <p class="text-muted small">หากคุณลงทะเบียนกิจกรรมไปแล้ว กรุณารอแอดมินพิจารณาอนุมัติ</p>
-                <a href="activity.php" class="btn btn-primary rounded-pill px-4 mt-3">ไปหน้าค้นหากิจกรรม</a>
-            </div>
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center mt-4">
+            <i class="fa-regular fa-folder-open fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted fw-bold">คุณยังไม่มีกิจกรรมที่ได้รับการอนุมัติให้เข้าร่วม</h5>
+            <p class="text-muted small">หากคุณลงทะเบียนกิจกรรมไปแล้ว กรุณารอแอดมินพิจารณาอนุมัติ</p>
+            <a href="activity.php" class="btn btn-primary rounded-pill px-4 mt-3">ไปหน้าค้นหากิจกรรม</a>
+        </div>
         <?php endif; ?>
     </div>
 
@@ -450,12 +505,14 @@ if (!empty($reg_ids)) {
     <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow-lg" style="border-radius: 20px; border: none;">
-                <div class="modal-header <?php echo ($_SESSION['status_modal']['type'] == 'success') ? 'bg-purple' : 'bg-danger'; ?> text-white border-0">
+                <div
+                    class="modal-header <?php echo ($_SESSION['status_modal']['type'] == 'success') ? 'bg-purple' : 'bg-danger'; ?> text-white border-0">
                     <h5 class="modal-title fw-bold"><?php echo $_SESSION['status_modal']['title']; ?></h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-center py-4">
-                    <i class="fas <?php echo ($_SESSION['status_modal']['type'] == 'success') ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'; ?> mb-3" style="font-size: 4rem;"></i>
+                    <i class="fas <?php echo ($_SESSION['status_modal']['type'] == 'success') ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'; ?> mb-3"
+                        style="font-size: 4rem;"></i>
                     <h5 class="text-dark"><?php echo $_SESSION['status_modal']['message']; ?></h5>
                 </div>
                 <div class="modal-footer border-0 justify-content-center">
@@ -473,4 +530,5 @@ if (!empty($reg_ids)) {
     <?php unset($_SESSION['status_modal']); endif; ?>
 
 </body>
+
 </html>

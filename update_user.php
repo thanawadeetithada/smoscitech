@@ -10,7 +10,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST["email"];
     $department = $_POST["department"];
     $academic_year = $_POST["academic_year"];
-    $year_level = $_POST["year_level"]; // 1. เพิ่มการรับค่า year_level
+    $year_level = $_POST["year_level"];
     $userrole = $_POST["userrole"];
 
     $sql_old = "SELECT profile_image FROM users WHERE user_id = ?";

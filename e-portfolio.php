@@ -2,7 +2,6 @@
 session_start();
 include 'db.php';
 
-// เช็คการล็อกอิน (ถ้ายังไม่ล็อกอินให้กลับไปหน้าแรก)
 if (!isset($_SESSION['user_id'])) {
     header("Location: index.php");
     exit();
@@ -10,9 +9,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// ==========================================
-// 1. ดึงข้อมูลส่วนตัวของผู้ใช้ (Profile)
-// ==========================================
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $user_id);
@@ -20,16 +16,11 @@ $stmt_user->execute();
 $user_profile = $stmt_user->get_result()->fetch_assoc();
 $stmt_user->close();
 
-// จัดการรูปโปรไฟล์
-$profile_image = 'https://placehold.co/150x150'; // รูปเริ่มต้น
+$profile_image = 'https://placehold.co/150x150';
 if (!empty($user_profile['profile_image']) && $user_profile['profile_image'] != 'default.png') {
-    // สมมติว่าเก็บรูปโปรไฟล์ไว้ในโฟลเดอร์ uploads/profiles/
     $profile_image = 'uploads/profiles/' . $user_profile['profile_image']; 
 }
 
-// ==========================================
-// 2. ดึงประวัติกิจกรรมที่ "ผ่าน" แล้ว (Portfolio)
-// ==========================================
 $portfolio_activities = [];
 $sql_act = "SELECT 
                 a.title, a.description, a.start_date, a.end_date, a.hours_count, a.cover_image,
@@ -83,7 +74,6 @@ $stmt_act->close();
         padding: 0 15px;
     }
 
-    /* Profile Header Styling */
     .profile-header {
         background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
         height: 160px;
@@ -113,7 +103,6 @@ $stmt_act->close();
         padding-bottom: 20px; 
     }
 
-    /* Activity Card Styling */
     .activity-card { 
         border: none; 
         border-radius: 15px; 
@@ -143,7 +132,6 @@ $stmt_act->close();
         font-weight: bold;
     }
 
-    /* Mobile Responsive (ต่ำกว่า 768px) */
     @media (max-width: 767.98px) {
         .main-content { margin: 15px auto; }
         .profile-header { height: 120px; }
@@ -197,24 +185,24 @@ $stmt_act->close();
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-dark px-3 shadow-sm d-print-none">
+     <nav class="navbar navbar-dark bg-dark px-3">
         <div class="d-flex w-100 justify-content-between align-items-center">
-            <i class="fa-solid fa-bars text-white fs-5" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" style="cursor: pointer;"></i>
-             <div class="nav-item">
+            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
+                style="cursor: pointer;"></i>
+            <div class="nav-item">
                 <a class="nav-link text-white" href="logout.php">
-                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'ตรวจสอบไม่พบ Role'; ?> ]
                     <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
     </nav>
 
-    <div class="offcanvas offcanvas-start bg-dark text-white d-print-none" tabindex="-1" id="sidebarMenu">
-        <div class="offcanvas-header border-bottom border-secondary">
-            <h5 class="offcanvas-title fw-bold"><i class="fa-solid fa-bars-staggered me-2"></i> เมนู</h5>
+    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarMenu">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title">รายการ</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body">
-             <ul class="list-unstyled">
+            <ul class="list-unstyled">
                 <li><a href="report_activity.php" class="text-white text-decoration-none d-block py-2"><i
                             class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
                 <li><a href="activity.php" class="text-white text-decoration-none d-block py-2"><i
@@ -274,10 +262,7 @@ $stmt_act->close();
 
                 <?php if (count($portfolio_activities) > 0): ?>
                     <?php foreach ($portfolio_activities as $act): 
-                        // เช็ครูปปกกิจกรรม
                         $cover_img = !empty($act['cover_image']) ? 'uploads/covers/' . $act['cover_image'] : 'https://placehold.co/600x400?text=No+Image';
-                        
-                        // จัดการวันที่
                         $start_date = date('d M Y', strtotime($act['start_date']));
                         $end_date = date('d M Y', strtotime($act['end_date']));
                         $date_display = ($start_date == $end_date) ? $start_date : $start_date . ' - ' . $end_date;

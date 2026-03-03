@@ -190,7 +190,8 @@ $row = $result->fetch_assoc();
             <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
                 style="cursor: pointer;"></i>
             <div class="nav-item">
-                <a class="nav-link" href="logout.php"><i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
+                <a class="nav-link text-white" href="logout.php">
+                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
     </nav>
@@ -265,7 +266,6 @@ $row = $result->fetch_assoc();
                             <?php
             $year_levels = ["ชั้นปีที่ 1", "ชั้นปีที่ 2", "ชั้นปีที่ 3", "ชั้นปีที่ 4", "อื่นๆ"];
             foreach ($year_levels as $yl) {
-                // เปลี่ยนจากการเช็ค $_POST เป็นการเช็คค่าจากฐานข้อมูล ($row)
                 $selected = ($row['year_level'] == $yl) ? 'selected' : '';
                 echo "<option value=\"$yl\" $selected>$yl</option>";
             }

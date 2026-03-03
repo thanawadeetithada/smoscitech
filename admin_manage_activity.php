@@ -8,9 +8,6 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-// ==========================================
-// ส่วนรับคำสั่ง AJAX อัปเดตสถานะแบบ Real-time
-// ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
     header('Content-Type: application/json');
     $reg_id = intval($_POST['reg_id']);
@@ -30,9 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } else {
         echo json_encode(['success' => false, 'message' => 'สถานะไม่ถูกต้อง']);
     }
-    exit(); // หยุดการทำงานไฟล์เพื่อส่งคืนแค่ JSON
+    exit();
 }
-// ==========================================
 
 $activity_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -71,7 +67,8 @@ $registrations = $stmt_reg->get_result();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
     :root {
         --primary-color: #4e73df;
     }
@@ -81,47 +78,125 @@ $registrations = $stmt_reg->get_result();
         background-color: #f8f9fc;
     }
 
-    .nav-item a { color: white; margin-right: 1rem; }
-    .navbar { padding: 20px; }
-    .nav-link:hover { color: white; }
-    
-    .card { border: none; border-radius: 15px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
-    .main-content { padding: 20px; margin: 20px auto; max-width: 1200px; }
-    
-    .stats-card {
-        border-radius: 15px; border: none; transition: transform 0.3s;
-        background: white; box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+    .nav-item a {
+        color: white;
+        margin-right: 1rem;
     }
-    
-    .table-container {
-        background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    }
-    
-    .bg-purple { background-color: #96a1cd !important; color: white; }
 
-    .status-select { font-weight: bold; border-radius: 8px; cursor: pointer; }
-    .status-pending { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
-    .status-approved { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
-    .status-rejected { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+    .navbar {
+        padding: 20px;
+    }
+
+    .nav-link:hover {
+        color: white;
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .main-content {
+        padding: 20px;
+        margin: 20px auto;
+        max-width: 1200px;
+    }
+
+    .stats-card {
+        border-radius: 15px;
+        border: none;
+        transition: transform 0.3s;
+        background: white;
+        box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .table-container {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .bg-purple {
+        background-color: #96a1cd !important;
+        color: white;
+    }
+
+    .status-select {
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+        border-color: #ffeeba;
+    }
+
+    .status-approved {
+        background-color: #d4edda;
+        color: #155724;
+        border-color: #c3e6cb;
+    }
+
+    .status-rejected {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-color: #f5c6cb;
+    }
 
     @media (max-width: 768px) {
-        .main-content { margin: 10px; padding: 10px; }
-        .header-flex { flex-direction: column; align-items: flex-start !important; }
-        .header-buttons { margin-top: 15px; width: 100%; display: flex; gap: 10px; }
-        .header-buttons .btn { flex: 1; }
-        .stats-card h2 { font-size: 1.4rem; }
+        .main-content {
+            margin: 10px;
+            padding: 10px;
+        }
+
+        .header-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+
+        .header-buttons {
+            margin-top: 15px;
+            width: 100%;
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-buttons .btn {
+            flex: 1;
+        }
+
+        .stats-card h2 {
+            font-size: 1.4rem;
+        }
     }
 
-    .table th, .table td { white-space: nowrap; font-size: 0.9rem; vertical-align: middle; }
-    .flex-container { display: flex; align-items: baseline; }
+    .table th,
+    .table td {
+        white-space: nowrap;
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+
+    .flex-container {
+        display: flex;
+        align-items: baseline;
+    }
     </style>
 </head>
 
 <body>
     <nav class="navbar navbar-dark bg-dark px-3">
         <div class="d-flex w-100 justify-content-between align-items-center">
-            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" style="cursor: pointer;"></i>
-            <div class="nav-item"><a class="nav-link text-white" href="logout.php"><i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a></div>
+            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
+                style="cursor: pointer;"></i>
+            <div class="nav-item">
+                <a class="nav-link text-white" href="logout.php">
+                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
+            </div>
         </div>
     </nav>
 
@@ -132,11 +207,16 @@ $registrations = $stmt_reg->get_result();
         </div>
         <div class="offcanvas-body">
             <ul class="list-unstyled">
-                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
-                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
-                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
+                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
+                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
+                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
             </ul>
         </div>
     </div>
@@ -155,7 +235,7 @@ $registrations = $stmt_reg->get_result();
             </div>
             <div class="header-buttons">
                 <button class="btn btn-warning shadow-sm" onclick="prepareClose(<?php echo $activity_id; ?>)">
-                     ปิดรับ
+                    ปิดรับ
                 </button>
                 <button class="btn btn-danger shadow-sm" onclick="prepareDelete(<?php echo $activity_id; ?>)">
                     <i class="fas fa-trash"></i> ลบกิจกรรม
@@ -167,19 +247,22 @@ $registrations = $stmt_reg->get_result();
             <div class="col-6 col-md-4">
                 <div class="stats-card p-3 text-center">
                     <h5 class="text-muted small">ผู้สมัครปัจจุบัน</h5>
-                    <h5 class="fw-bold mb-0 text-primary" style="font-size: 1.2rem;"><?php echo $activity['reg_count']; ?> / <?php echo ($activity['total_cap'] ?? 0); ?></h5>
+                    <h5 class="fw-bold mb-0 text-primary" style="font-size: 1.2rem;">
+                        <?php echo $activity['reg_count']; ?> / <?php echo ($activity['total_cap'] ?? 0); ?></h5>
                 </div>
             </div>
             <div class="col-6 col-md-4">
                 <div class="stats-card p-3 text-center">
                     <h5 class="text-muted small">วันเริ่มงาน</h5>
-                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 1rem;"><?php echo date('d/m/Y', strtotime($activity['start_date'])); ?></h5>
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 1rem;">
+                        <?php echo date('d/m/Y', strtotime($activity['start_date'])); ?></h5>
                 </div>
             </div>
             <div class="col-12 col-md-4">
                 <div class="stats-card p-3 text-center">
                     <h5 class="text-muted small">สถานที่</h5>
-                    <h5 class="fw-bold text-truncate mb-0 text-dark" style="font-size: 1rem;"><?php echo htmlspecialchars($activity['location'] ?? 'ไม่ระบุ'); ?></h5>
+                    <h5 class="fw-bold text-truncate mb-0 text-dark" style="font-size: 1rem;">
+                        <?php echo htmlspecialchars($activity['location'] ?? 'ไม่ระบุ'); ?></h5>
                 </div>
             </div>
         </div>
@@ -202,34 +285,43 @@ $registrations = $stmt_reg->get_result();
                     </thead>
                     <tbody>
                         <?php if($registrations->num_rows > 0): ?>
-                            <?php while($reg = $registrations->fetch_assoc()): 
+                        <?php while($reg = $registrations->fetch_assoc()): 
                                 $select_class = 'status-pending';
                                 if($reg['registration_status'] == 'approved') $select_class = 'status-approved';
                                 if($reg['registration_status'] == 'rejected') $select_class = 'status-rejected';
                             ?>
-                            <tr>
-                                <td class="fw-bold"><?php echo htmlspecialchars($reg['idstudent']); ?></td>
-                                <td><?php echo htmlspecialchars($reg['first_name'] . ' ' . $reg['last_name']); ?></td>
-                                <td><span class="badge bg-light text-dark border"><?php echo htmlspecialchars($reg['task_name'] ?: 'ไม่ระบุ'); ?></span></td>
-                                <td class="small text-muted"><?php echo date('d/m/y H:i', strtotime($reg['registered_at'])); ?></td>
-                                <td class="text-center">
-                                    <select class="form-select form-select-sm status-select <?php echo $select_class; ?>" 
-                                            data-reg-id="<?php echo $reg['registration_id']; ?>" 
-                                            style="min-width: 130px; margin: 0 auto;">
-                                        <option value="pending" class="bg-white text-dark" <?php if($reg['registration_status'] == 'pending') echo 'selected'; ?>>รอพิจารณา</option>
-                                        <option value="approved" class="bg-white text-dark" <?php if($reg['registration_status'] == 'approved') echo 'selected'; ?>>✓ อนุมัติแล้ว</option>
-                                        <option value="rejected" class="bg-white text-dark" <?php if($reg['registration_status'] == 'rejected') echo 'selected'; ?>>✗ ปฏิเสธ</option>
-                                    </select>
-                                </td>
-                            </tr>
-                            <?php endwhile; ?>
+                        <tr>
+                            <td class="fw-bold"><?php echo htmlspecialchars($reg['idstudent']); ?></td>
+                            <td><?php echo htmlspecialchars($reg['first_name'] . ' ' . $reg['last_name']); ?></td>
+                            <td><span
+                                    class="badge bg-light text-dark border"><?php echo htmlspecialchars($reg['task_name'] ?: 'ไม่ระบุ'); ?></span>
+                            </td>
+                            <td class="small text-muted">
+                                <?php echo date('d/m/y H:i', strtotime($reg['registered_at'])); ?></td>
+                            <td class="text-center">
+                                <select class="form-select form-select-sm status-select <?php echo $select_class; ?>"
+                                    data-reg-id="<?php echo $reg['registration_id']; ?>"
+                                    style="min-width: 130px; margin: 0 auto;">
+                                    <option value="pending" class="bg-white text-dark"
+                                        <?php if($reg['registration_status'] == 'pending') echo 'selected'; ?>>รอพิจารณา
+                                    </option>
+                                    <option value="approved" class="bg-white text-dark"
+                                        <?php if($reg['registration_status'] == 'approved') echo 'selected'; ?>>✓
+                                        อนุมัติแล้ว</option>
+                                    <option value="rejected" class="bg-white text-dark"
+                                        <?php if($reg['registration_status'] == 'rejected') echo 'selected'; ?>>✗ ปฏิเสธ
+                                    </option>
+                                </select>
+                            </td>
+                        </tr>
+                        <?php endwhile; ?>
                         <?php else: ?>
-                            <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="fa-regular fa-folder-open fa-3x mb-3 opacity-50"></i><br>
-                                    ยังไม่มีผู้ลงทะเบียนในกิจกรรมนี้
-                                </td>
-                            </tr>
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fa-regular fa-folder-open fa-3x mb-3 opacity-50"></i><br>
+                                ยังไม่มีผู้ลงทะเบียนในกิจกรรมนี้
+                            </td>
+                        </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -250,7 +342,8 @@ $registrations = $stmt_reg->get_result();
                     <small class="text-danger">*ข้อมูลผู้สมัครและคะแนนทั้งหมดที่เกี่ยวข้องจะถูกลบออกถาวร</small>
                 </div>
                 <div class="modal-footer border-0 justify-content-center pb-4">
-                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-secondary px-4 rounded-pill"
+                        data-bs-dismiss="modal">ยกเลิก</button>
                     <a href="#" class="btn btn-danger px-4 rounded-pill" id="confirmDeleteBtn">ลบข้อมูล</a>
                 </div>
             </div>
@@ -270,8 +363,10 @@ $registrations = $stmt_reg->get_result();
                     <small class="text-muted">เมื่อปิดแล้ว นักศึกษาจะไม่สามารถลงทะเบียนเพิ่มได้อีก</small>
                 </div>
                 <div class="modal-footer border-0 justify-content-center pb-4">
-                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
-                    <a href="#" class="btn btn-warning px-4 rounded-pill fw-bold" id="confirmCloseBtn">ยืนยันปิดรับสมัคร</a>
+                    <button type="button" class="btn btn-secondary px-4 rounded-pill"
+                        data-bs-dismiss="modal">ยกเลิก</button>
+                    <a href="#" class="btn btn-warning px-4 rounded-pill fw-bold"
+                        id="confirmCloseBtn">ยืนยันปิดรับสมัคร</a>
                 </div>
             </div>
         </div>
@@ -279,7 +374,6 @@ $registrations = $stmt_reg->get_result();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    // จัดการลบกิจกรรม
     function prepareDelete(id) {
         const myModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
         const confirmBtn = document.getElementById('confirmDeleteBtn');
@@ -287,57 +381,66 @@ $registrations = $stmt_reg->get_result();
         myModal.show();
     }
 
-    // จัดการปิดรับสมัครกิจกรรม
     function prepareClose(id) {
         const myModal = new bootstrap.Modal(document.getElementById('confirmCloseModal'));
         const confirmBtn = document.getElementById('confirmCloseBtn');
-        // ส่ง ID ไปหน้า process_close_activity.php เพื่ออัปเดตสถานะในฐานข้อมูล
         confirmBtn.href = 'process_close_activity.php?id=' + id;
         myModal.show();
     }
 
-    // จัดการเปลี่ยนสถานะผู้สมัครแบบ AJAX
     document.querySelectorAll('.status-select').forEach(select => {
         select.addEventListener('change', function() {
             const selectElement = this;
             const regId = selectElement.dataset.regId;
             const newStatus = selectElement.value;
-            
-            // เปลี่ยนสีพื้นหลัง dropdown ตามสถานะที่เลือก
-            selectElement.classList.remove('status-pending', 'status-approved', 'status-rejected');
-            if(newStatus === 'pending') selectElement.classList.add('status-pending');
-            else if(newStatus === 'approved') selectElement.classList.add('status-approved');
-            else if(newStatus === 'rejected') selectElement.classList.add('status-rejected');
 
-            // ส่งข้อมูลไปบันทึกผ่าน Fetch API (AJAX)
+            selectElement.classList.remove('status-pending', 'status-approved', 'status-rejected');
+            if (newStatus === 'pending') selectElement.classList.add('status-pending');
+            else if (newStatus === 'approved') selectElement.classList.add('status-approved');
+            else if (newStatus === 'rejected') selectElement.classList.add('status-rejected');
+
             const formData = new URLSearchParams();
             formData.append('action', 'update_status');
             formData.append('reg_id', regId);
             formData.append('status', newStatus);
 
             fetch(window.location.href, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: formData.toString()
-            })
-            .then(response => response.json())
-            .then(data => {
-                if(data.success) {
-                    // ใช้ SweetAlert2 แจ้งเตือนมุมขวาบนแบบไม่รบกวนการทำงาน
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData.toString()
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: data.message,
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ผิดพลาด',
+                            text: data.message
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                     Swal.fire({
-                        toast: true, position: 'top-end', icon: 'success',
-                        title: data.message, showConfirmButton: false, timer: 1500
+                        icon: 'error',
+                        title: 'ระบบขัดข้อง',
+                        text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้'
                     });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: data.message });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({ icon: 'error', title: 'ระบบขัดข้อง', text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้' });
-            });
+                });
         });
     });
     </script>
 </body>
+
 </html>

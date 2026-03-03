@@ -179,7 +179,6 @@ $result = $conn->query($sql);
                 style="cursor: pointer;"></i>
             <div class="nav-item">
                 <a class="nav-link text-white" href="logout.php">
-                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'ตรวจสอบไม่พบ Role'; ?> ]
                     <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
@@ -209,7 +208,7 @@ $result = $conn->query($sql);
         <div class="container-fluid">
             <div class="mb-4 d-flex justify-content-between align-items-center">
                 <div>
-                    <h4 class="fw-bold mb-0">คะแนนกิจกรรมสโมสร</h4>
+                    <h4 class="fw-bold mb-0">คะแนนกิจกรรม</h4>
                     <p class="text-muted mb-0">ค้นหาและจัดการคะแนนกิจกรรม</p>
                 </div>
             </div>
@@ -233,7 +232,7 @@ $result = $conn->query($sql);
                 $cover_img = !empty($row['cover_image']) ? 'uploads/covers/' . $row['cover_image'] : '';
             $status_class = 'status-open';
             $status_text = 'เปิดรับสมัคร';
-            $filter_text = 'Open'; // ใช้สำหรับ JS Filter
+            $filter_text = 'Open';
 
             if($row['status'] == 'closed') {
                 $status_class = 'status-closed';

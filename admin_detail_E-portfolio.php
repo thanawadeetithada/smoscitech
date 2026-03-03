@@ -2,25 +2,19 @@
 session_start();
 include 'db.php';
 
-// เช็คสิทธิ์แอดมิน
 $allowed_roles = ['executive', 'academic_officer', 'club_president'];
 if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_roles)) {
     header("Location: index.php");
     exit();
 }
 
-// รับค่า user_id จาก URL ที่ส่งมาจากหน้าตาราง
 $target_user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
 
 if ($target_user_id === 0) {
-    // ถ้าไม่มีการส่ง ID มา ให้เด้งกลับ
     header("Location: admin_e-portfolio_transcript.php");
     exit();
 }
 
-// ==========================================
-// 1. ดึงข้อมูลส่วนตัวของผู้ใช้ (Profile)
-// ==========================================
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $target_user_id);
@@ -28,15 +22,11 @@ $stmt_user->execute();
 $user_profile = $stmt_user->get_result()->fetch_assoc();
 $stmt_user->close();
 
-// จัดการรูปโปรไฟล์
 $profile_image = 'https://placehold.co/150x150';
 if (!empty($user_profile['profile_image']) && $user_profile['profile_image'] != 'default.png') {
     $profile_image = 'uploads/profiles/' . $user_profile['profile_image']; 
 }
 
-// ==========================================
-// 2. ดึงประวัติกิจกรรมที่ "ผ่าน" แล้ว (Portfolio)
-// ==========================================
 $portfolio_activities = [];
 $sql_act = "SELECT 
                 a.title, a.description, a.start_date, a.end_date, a.hours_count, a.cover_image,
@@ -73,14 +63,10 @@ $stmt_act->close();
     .nav-item a { color: white; margin-right: 1rem; }
     .navbar { padding: 15px 20px; }
     .main-content { max-width: 1000px; margin: 30px auto; padding: 0 15px; }
-
-    /* Profile Header */
     .profile-header { background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); height: 160px; border-radius: 15px 15px 0 0; position: relative; }
     .profile-img-container { position: absolute; bottom: -50px; left: 40px; }
     .profile-img { width: 130px; height: 130px; border-radius: 50%; border: 5px solid #fff; object-fit: cover; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .profile-info { padding-top: 10px; padding-left: 190px; padding-bottom: 20px; }
-
-    /* Activity Card */
     .activity-card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); transition: transform 0.2s ease-in-out; }
     .activity-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); }
     .activity-img { width: 100%; height: 100%; object-fit: cover; border-radius: 15px 0 0 15px; min-height: 220px; }
@@ -110,30 +96,35 @@ $stmt_act->close();
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-dark px-3 shadow-sm d-print-none">
+    <nav class="navbar navbar-dark bg-dark px-3 d-print-none">
         <div class="d-flex w-100 justify-content-between align-items-center">
-            <i class="fa-solid fa-bars text-white fs-5" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" style="cursor: pointer;"></i>
+            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
+                style="cursor: pointer;"></i>
             <div class="nav-item">
-                <a class="nav-link text-white fw-bold" href="logout.php">
-                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'Admin'; ?> ]
-                    <i class="fa-solid fa-arrow-right-from-bracket ms-1"></i>
-                </a>
+                <a class="nav-link text-white" href="logout.php">
+                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
     </nav>
 
     <div class="offcanvas offcanvas-start bg-dark text-white d-print-none" tabindex="-1" id="sidebarMenu">
-        <div class="offcanvas-header border-bottom border-secondary">
-            <h5 class="offcanvas-title fw-bold"><i class="fa-solid fa-bars-staggered me-2"></i> เมนูแอดมิน</h5>
+        <div class="offcanvas-header border-bottom border-secondary"></div>" tabindex="-1" id="sidebarMenu">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title">รายการ</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body">
             <ul class="list-unstyled">
-                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-chart-line me-2"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-list-check me-2"></i> กิจกรรม</a></li>
-                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2 text-info"><i class="fa-regular fa-address-book me-2"></i> E-Portfolio / Transcript</a></li>
-                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i class="fa-regular fa-star me-2"></i> คะแนนกิจกรรม</a></li>
-                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i class="fa-solid fa-user-tie me-2"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
+                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
+                <li><a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-address-book"></i> E-Portfolio / Transcript</a></li>
+                <li><a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
+                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
+                            class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
             </ul>
         </div>
     </div>

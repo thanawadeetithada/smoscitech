@@ -232,8 +232,7 @@ while($y = $year_query->fetch_assoc()) {
             <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
                 style="cursor: pointer;"></i>
             <div class="nav-item">
-                <a class="nav-link" href="logout.php">
-                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'ตรวจสอบไม่พบ Role'; ?> ]
+                <a class="nav-link text-white" href="logout.php">
                     <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
@@ -396,18 +395,13 @@ while($y = $year_query->fetch_assoc()) {
 
             $("#memberTable tbody tr").each(function() {
                 if ($(this).attr("id") === "noResult") return;
-
-                // ดึงค่าจาก TD (Index 4=ปีการศึกษา, 5=สาขา, 6=ชั้นปี)
                 var rowText = $(this).text().toLowerCase();
                 var rowAcademicYear = $(this).find("td:eq(4)").text().trim();
                 var rowDepartment = $(this).find("td:eq(5)").text().trim();
                 var rowYearLevel = $(this).find("td:eq(6)").text().trim();
-
-                // ตรวจสอบเงื่อนไข
                 var matchSearch = rowText.indexOf(searchTerm) > -1;
                 var matchYear = (academicYear === "" || rowAcademicYear === academicYear);
                 var matchDept = (department === "" || rowDepartment === department);
-                // ตรวจสอบชั้นปี (เช็คว่ามีตัวเลขในข้อความ เช่น "1" ตรงกับ "ชั้นปีที่ 1" หรือไม่)
                 var matchLevel = (yearLevel === "" || rowYearLevel.includes(yearLevel));
 
                 if (matchSearch && matchYear && matchDept && matchLevel) {
@@ -425,7 +419,6 @@ while($y = $year_query->fetch_assoc()) {
             }
         }
 
-        // เมื่อมีการเปลี่ยนแปลงข้อมูลในทุก Input/Select ให้เรียกใช้ฟังก์ชัน
         $(".search-name").on("keyup", filterTable);
         $("#filterAcademicYear, #filterDepartment, #filterYearLevel").on("change", filterTable);
     });

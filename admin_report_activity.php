@@ -9,26 +9,25 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-// 1. นับจำนวนกิจกรรมทั้งหมด
 $sql_activities = "SELECT COUNT(*) as total FROM activities";
 $result_activities = $conn->query($sql_activities);
 $total_activities = $result_activities ? $result_activities->fetch_assoc()['total'] : 0;
 
-// 2. นับจำนวนสมาชิกทั้งหมด
 $sql_users = "SELECT COUNT(*) as total FROM users";
 $result_users = $conn->query($sql_users);
 $total_users = $result_users ? $result_users->fetch_assoc()['total'] : 0;
 
-// 3. นับจำนวนการลงทะเบียนที่รอการอนุมัติ (Pending)
 $sql_pending = "SELECT COUNT(*) as total FROM activity_registrations WHERE registration_status = 'pending'";
 $result_pending = $conn->query($sql_pending);
 $total_pending = $result_pending ? $result_pending->fetch_assoc()['total'] : 0;
 
-// 4. ดึงข้อมูลกิจกรรมเร็วๆ นี้ (ที่สถานะยังเปิดอยู่ 3 รายการ)
-$sql_upcoming = "SELECT title, start_date, hours_count FROM activities WHERE status = 'open' ORDER BY start_date ASC LIMIT 3";
+$sql_upcoming = "SELECT title, start_date, hours_count 
+                 FROM activities 
+                 WHERE status = 'open' AND start_date >= CURDATE() 
+                 ORDER BY start_date ASC 
+                 LIMIT 3";
 $result_upcoming = $conn->query($sql_upcoming);
 
-// 5. ดึงข้อมูลสำหรับกราฟ (ยอดผู้ลงทะเบียน 5 กิจกรรมล่าสุด)
 $sql_chart = "SELECT a.title, COUNT(ar.registration_id) as total_reg 
               FROM activities a 
               LEFT JOIN activity_registrations ar ON a.activity_id = ar.activity_id 
@@ -49,7 +48,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
 <html lang="th">
 
 <head>
-    <meta charset="UTF-8">
+      <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-title" content="App Premium">
     <meta name="application-name" content="App Premium">
@@ -149,7 +148,6 @@ if ($result_chart && $result_chart->num_rows > 0) {
                 style="cursor: pointer;"></i>
             <div class="nav-item">
                 <a class="nav-link text-white" href="logout.php">
-                    [ <?php echo !empty($_SESSION['userrole']) ? $_SESSION['userrole'] : 'ตรวจสอบไม่พบ Role'; ?> ]
                     <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
             </div>
         </div>
@@ -177,19 +175,18 @@ if ($result_chart && $result_chart->num_rows > 0) {
     </div>
 
     <div class="main-content">
-        <div class="container-fluid">
-            <h3 class="fw-bold mb-1">ภาพรวมกิจกรรมและการดำเนินงานของสโมสร</h3><br>
+        <div class="container-fluid p-0">
+            <h4 class="fw-bold mb-4 text-dark">ภาพรวมกิจกรรมและการดำเนินงานของสโมสร</h4>
 
             <div class="row mb-4">
                 <div class="col-md-4 mb-3">
                     <a href="admin_activity.php" class="text-decoration-none text-dark">
                         <div class="stat-card d-flex align-items-center justify-content-between">
                             <div>
-                                <div class="text-muted">กิจกรรมทั้งหมด</div>
-                                <h3 class="mb-0 fw-bold"><?php echo number_format($total_activities); ?></h3>
+                                <div class="text-muted fw-bold mb-1">กิจกรรมทั้งหมด</div>
+                                <h2 class="mb-0 fw-bold"><?php echo number_format($total_activities); ?></h2>
                             </div>
-                            <div class="stat-icon bg-primary text-white"><i class="fas fa-calendar-check"></i>
-                            </div>
+                            <div class="stat-icon bg-primary text-white"><i class="fas fa-calendar-check"></i></div>
                         </div>
                     </a>
                 </div>
@@ -197,62 +194,77 @@ if ($result_chart && $result_chart->num_rows > 0) {
                     <a href="admin_user_management.php" class="text-decoration-none text-dark">
                         <div class="stat-card d-flex align-items-center justify-content-between">
                             <div>
-                                <div class="text-muted small">สมาชิกทั้งหมด</div>
-                                <h3 class="mb-0 fw-bold"><?php echo number_format($total_users); ?></h3>
+                                <div class="text-muted fw-bold mb-1">สมาชิกทั้งหมด</div>
+                                <h2 class="mb-0 fw-bold"><?php echo number_format($total_users); ?></h2>
                             </div>
                             <div class="stat-icon bg-success text-white"><i class="fas fa-user-friends"></i></div>
                         </div>
                     </a>
                 </div>
                 <div class="col-md-4 mb-3">
+                    <a href="admin_activity.php" class="text-decoration-none text-dark">
                     <div class="text-decoration-none text-dark">
                         <div class="stat-card d-flex align-items-center justify-content-between">
                             <div>
-                                <div class="text-muted small">รอการอนุมัติ</div>
-                                <h3 class="mb-0 fw-bold"><?php echo number_format($total_pending); ?></h3>
+                                <div class="text-muted fw-bold mb-1">รอการอนุมัติ</div>
+                                <h2 class="mb-0 fw-bold"><?php echo number_format($total_pending); ?></h2>
                             </div>
                             <div class="stat-icon bg-warning text-white"><i class="fas fa-clock"></i></div>
                         </div>
                     </div>
+                </a>
                 </div>
             </div>
 
             <div class="row">
                 <div class="col-lg-8 mb-4">
                     <div class="stat-card">
-                        <h6 class="fw-bold mb-4"><i class="fas fa-chart-line text-primary me-2"></i>
-                            สถิติการเข้าร่วมกิจกรรม (5 ล่าสุด)</h6>
-                        <canvas id="activityChart" style="max-height: 300px;"></canvas>
+                        <h5 class="fw-bold mb-4"><i class="fas fa-chart-bar text-primary me-2"></i> สถิติการเข้าร่วมกิจกรรม (5 ล่าสุด)</h5>
+                        <div style="position: relative; height: 320px; width: 100%;">
+                            <canvas id="activityChart"></canvas>
+                        </div>
                     </div>
                 </div>
 
                 <div class="col-lg-4 mb-4">
                     <div class="stat-card">
-                        <h6 class="fw-bold mb-3">กิจกรรมเร็วๆ นี้</h6>
+                        <h5 class="fw-bold mb-3"><i class="fas fa-calendar-alt text-warning me-2"></i> กิจกรรมเร็วๆ นี้</h5>
 
                         <?php 
+                        $thai_months = [
+                            "01" => "ม.ค.", "02" => "ก.พ.", "03" => "มี.ค.", "04" => "เม.ย.",
+                            "05" => "พ.ค.", "06" => "มิ.ย.", "07" => "ก.ค.", "08" => "ส.ค.",
+                            "09" => "ก.ย.", "10" => "ต.ค.", "11" => "พ.ย.", "12" => "ธ.ค."
+                        ];
+
                         if ($result_upcoming && $result_upcoming->num_rows > 0) {
                             while ($row = $result_upcoming->fetch_assoc()) {
                                 $date_obj = strtotime($row['start_date']);
-                                $month = strtoupper(date('M', $date_obj)); // เดือนแบบย่อภาษาอังกฤษ
-                                $day = date('d', $date_obj); // วันที่
+                                $day = date('d', $date_obj);
+                                $month_num = date('m', $date_obj);
+                                $month_thai = $thai_months[$month_num];
                         ?>
                                 <div class="event-item">
-                                    <div class="event-date"><?php echo $month; ?><small><?php echo $day; ?></small></div>
+                                    <div class="event-date">
+                                        <span style="font-size: 20px; font-weight: 700; display: block;"><?php echo $day; ?></span>
+                                        <small style="font-size: 13px; font-weight: 500;"><?php echo $month_thai; ?></small>
+                                    </div>
                                     <div>
-                                        <div class="fw-bold small"><?php echo htmlspecialchars($row['title']); ?></div>
-                                        <div class="text-muted" style="font-size: 12px;"><?php echo $row['hours_count']; ?> ชั่วโมง</div>
+                                        <div class="fw-bold text-dark mb-1"><?php echo htmlspecialchars($row['title']); ?></div>
+                                        <div class="text-muted small">
+                                            <i class="far fa-clock me-1"></i> <?php echo $row['hours_count']; ?> ชั่วโมง
+                                        </div>
                                     </div>
                                 </div>
                         <?php 
                             }
                         } else {
-                            echo '<div class="text-center text-muted mt-4"><small>ยังไม่มีกิจกรรมเร็วๆ นี้</small></div>';
+                            echo '<div class="text-center text-muted mt-4 p-4 bg-light rounded"><i class="far fa-folder-open fs-1 mb-2 text-secondary"></i><br>ยังไม่มีกิจกรรมเร็วๆ นี้</div>';
                         }
                         ?>
 
-                        <div class="text-center mt-3">
-                            <a href="admin_activity.php" class="text-decoration-none small">ดูทั้งหมด</a>
+                        <div class="text-center mt-4 pt-3 border-top">
+                            <a href="admin_activity.php" class="text-decoration-none fw-bold text-primary">ดูกิจกรรมทั้งหมด <i class="fas fa-arrow-right ms-1"></i></a>
                         </div>
                     </div>
                 </div>
@@ -263,8 +275,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const ctx = document.getElementById('activityChart').getContext('2d');
-            
-            // ข้อมูลจาก PHP
+
             const labels = <?php echo json_encode($chart_labels); ?>;
             const dataCounts = <?php echo json_encode($chart_data); ?>;
 
@@ -276,8 +287,9 @@ if ($result_chart && $result_chart->num_rows > 0) {
                         label: 'จำนวนผู้ลงทะเบียน (คน)',
                         data: dataCounts,
                         backgroundColor: '#4e73df',
-                        borderRadius: 5,
-                        barPercentage: 0.6
+                        hoverBackgroundColor: '#2e59d9',
+                        borderRadius: 6,
+                        barPercentage: 0.5
                     }]
                 },
                 options: {
@@ -287,19 +299,36 @@ if ($result_chart && $result_chart->num_rows > 0) {
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                stepSize: 1
+                                stepSize: 1,
+                                font: { family: 'Prompt' }
+                            },
+                            grid: {
+                                borderDash: [5, 5]
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { family: 'Prompt' }
+                            },
+                            grid: {
+                                display: false
                             }
                         }
                     },
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            padding: 12,
+                            titleFont: { family: 'Prompt', size: 14 },
+                            bodyFont: { family: 'Prompt', size: 13 }
                         }
                     }
                 }
             });
         });
     </script>
-
 </body>
 </html>
