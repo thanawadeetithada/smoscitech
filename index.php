@@ -374,13 +374,13 @@ ob_end_flush();
                     </div>
                     <?php endif; ?>
 
-                    <form action="index.php" method="POST">
+                    <form action="index.php" method="POST" autocomplete="off">
                         <input type="text" name="idstudent" class="form-control form-control-custom"
                             placeholder="รหัสนักศึกษา" value="<?php echo htmlspecialchars($idstudentOrEmail); ?>"
                             required>
 
                         <input type="password" name="password" class="form-control form-control-custom"
-                            placeholder="รหัสผ่าน" required>
+                            placeholder="รหัสผ่าน" required autocomplete="new-password">
 
                         <button type="submit" class="btn-submit">Login</button>
                     </form>
