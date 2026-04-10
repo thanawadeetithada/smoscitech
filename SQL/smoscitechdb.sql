@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 03, 2026 at 07:03 AM
+-- Generation Time: Apr 11, 2026 at 12:24 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -45,6 +45,13 @@ CREATE TABLE `activities` (
   `allowed_department` text DEFAULT NULL COMMENT 'สาขาวิชาที่อนุญาต'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `activities`
+--
+
+INSERT INTO `activities` (`activity_id`, `title`, `description`, `location`, `start_date`, `end_date`, `hours_count`, `cover_image`, `status`, `created_by`, `created_at`, `updated_at`, `allowed_year_level`, `allowed_academic_year`, `allowed_department`) VALUES
+(11, 'ค่ายอาสา', 'รายละเอียดกิจกรรม วันที่ 1-5', 'หอประชุม', '2026-04-07 17:04:00', '2026-04-30 17:04:00', 10, 'cover_1775556284_69d4d6bc7b479.jpg', 'open', 19, '2026-04-07 10:04:44', '2026-04-07 10:04:44', 'ชั้นปีที่ 1', '2569', NULL);
+
 -- --------------------------------------------------------
 
 --
@@ -58,6 +65,13 @@ CREATE TABLE `activity_evidences` (
   `description` text DEFAULT NULL COMMENT 'รายละเอียดคำบรรยาย',
   `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `activity_evidences`
+--
+
+INSERT INTO `activity_evidences` (`evidence_id`, `registration_id`, `image_path`, `description`, `uploaded_at`) VALUES
+(6, 15, 'user_18_ev_1775557462.jpg', 'sssssss', '2026-04-07 10:24:22');
 
 -- --------------------------------------------------------
 
@@ -75,6 +89,13 @@ CREATE TABLE `activity_registrations` (
   `registered_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `activity_registrations`
+--
+
+INSERT INTO `activity_registrations` (`registration_id`, `user_id`, `activity_id`, `task_id`, `registration_status`, `participation_status`, `registered_at`) VALUES
+(15, 18, 11, 46, 'approved', 'passed', '2026-04-07 10:11:11');
+
 -- --------------------------------------------------------
 
 --
@@ -89,6 +110,13 @@ CREATE TABLE `activity_tasks` (
   `capacity` int(11) DEFAULT 0 COMMENT 'จำนวนที่รับสมัครในตำแหน่งนี้'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `activity_tasks`
+--
+
+INSERT INTO `activity_tasks` (`task_id`, `activity_id`, `task_name`, `task_detail`, `capacity`) VALUES
+(46, 11, 'ดูแล', 'รายละเอียด (ระบุได้)', 5);
+
 -- --------------------------------------------------------
 
 --
@@ -102,6 +130,8 @@ CREATE TABLE `users` (
   `profile_image` varchar(255) DEFAULT 'default.png',
   `idstudent` varchar(191) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL COMMENT 'เบอร์โทรศัพท์',
+  `about_me` text DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `academic_year` varchar(4) DEFAULT NULL,
   `year_level` varchar(50) DEFAULT NULL,
@@ -109,20 +139,81 @@ CREATE TABLE `users` (
   `reset_token` varchar(255) DEFAULT NULL,
   `reset_expiry` datetime DEFAULT NULL,
   `status` enum('active','inactive') NOT NULL DEFAULT 'active',
-  `userrole` enum('executive','academic_officer','club_president','club_member') NOT NULL DEFAULT 'club_member',
+  `userrole` enum('executive','academic_officer','club_president','club_member') DEFAULT NULL,
+  `membership_status` enum('member','no_member') NOT NULL DEFAULT 'no_member',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `deleted_at` datetime DEFAULT NULL
+  `deleted_at` datetime DEFAULT NULL,
+  `hard_skill_computer` varchar(255) DEFAULT NULL,
+  `comp_level` varchar(50) DEFAULT NULL,
+  `hard_skill_lang` varchar(255) DEFAULT NULL,
+  `lang_listen` varchar(50) DEFAULT NULL,
+  `lang_speak` varchar(50) DEFAULT NULL,
+  `lang_read` varchar(50) DEFAULT NULL,
+  `lang_write` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `first_name`, `last_name`, `profile_image`, `idstudent`, `email`, `password`, `academic_year`, `year_level`, `department`, `reset_token`, `reset_expiry`, `status`, `userrole`, `created_at`, `deleted_at`) VALUES
-(15, 'ผู้บริหาร', 'executive', 'fern_1770968552.png', '4', 'test4@gmail.com', '$2y$10$QZOZZ/mojFmDBGZLKTOJDeEbggwRxS5wLpjNSaCPJipjmYIRh.A.i', '2569', 'ชั้นปีที่ 4', 'วิทยาการคอมพิวเตอร์', NULL, NULL, 'active', 'executive', '2026-02-13 07:42:32', NULL),
-(18, 'สมาชิกสโมร', 'club_member', 'user_18_1771778491.png', '1', 'test1@gmail.com', '$2y$10$9b1Owjhi11P2XwGsIQR8J.j7AxZiH3obQjT3VcX3aL6TMufBfvf2C', '2569', 'ชั้นปีที่ 1', 'วิทยาการคอมพิวเตอร์', NULL, NULL, 'active', 'club_member', '2026-02-21 15:00:45', NULL),
-(19, 'นายก/รองนายกสโมสรนักศึกษา', 'club_president', '2_1771686392.png', '2', 'test2@gmail.com', '$2y$10$e3aya9edCqrJs2.uvU.yau82w3vYQ7t1WVOknHDyRx26QlEVPuNza', '2569', 'ชั้นปีที่ 1', 'เทคโนโลยีสารสนเทศ', NULL, NULL, 'active', 'club_president', '2026-02-21 15:06:32', NULL),
-(21, 'นักวิชาการศึกษา', 'academic_officer', 'user_21_1771730655.png', '3', 'test3@gmail.com', '$2y$10$TTihFVVIj/UJSyb88XBxWewetOoMvnMFWgrH5dECRuNfj0gtfgP6G', '2569', 'ชั้นปีที่ 2', 'ชีววิทยา', NULL, NULL, 'active', 'academic_officer', '2026-02-22 03:23:18', NULL);
+INSERT INTO `users` (`user_id`, `first_name`, `last_name`, `profile_image`, `idstudent`, `email`, `phone`, `about_me`, `password`, `academic_year`, `year_level`, `department`, `reset_token`, `reset_expiry`, `status`, `userrole`, `membership_status`, `created_at`, `deleted_at`, `hard_skill_computer`, `comp_level`, `hard_skill_lang`, `lang_listen`, `lang_speak`, `lang_read`, `lang_write`) VALUES
+(15, 'ผู้บริหาร', 'executive', '1_1771686035.png', '4', 'test4@gmail.com', '585หห', NULL, '$2y$10$QZOZZ/mojFmDBGZLKTOJDeEbggwRxS5wLpjNSaCPJipjmYIRh.A.i', '2569', 'ชั้นปีที่ 4', 'วิทยาการคอมพิวเตอร์', NULL, NULL, 'active', 'executive', 'member', '2026-02-13 07:42:32', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(18, 'สมาชิกสโมร', 'club_member', 'user_18_1775857659.jpg', '1', 'test1@gmail.com', '585', 'กกกกกแนะนำตัวเอง (About Me)แนะนำตัวเอง (About Me)แนะนำตัวเอง (About Me)แนะนำตัวเอง (About Me)', '$2y$10$9b1Owjhi11P2XwGsIQR8J.j7AxZiH3obQjT3VcX3aL6TMufBfvf2C', '2569', 'ชั้นปีที่ 1', 'วิทยาการคอมพิวเตอร์', NULL, NULL, 'active', 'club_member', 'member', '2026-02-21 15:00:45', NULL, 'Python', 'ดีเยี่ยม', '', 'Array', 'Array', 'Array', 'Array'),
+(19, 'นายก/รองนายกสโมสรนักศึกษา', 'club_president', 'user_19_1775856658.png', '2', 'test2@gmail.com', '585', NULL, '$2y$10$e3aya9edCqrJs2.uvU.yau82w3vYQ7t1WVOknHDyRx26QlEVPuNza', '2569', 'ชั้นปีที่ 1', 'เทคโนโลยีสารสนเทศ', NULL, NULL, 'active', 'club_president', 'member', '2026-02-21 15:06:32', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(21, 'นักวิชาการศึกษา', 'academic_officer', '1_1771686035.png', '3', 'test3@gmail.com', '585', NULL, '$2y$10$TTihFVVIj/UJSyb88XBxWewetOoMvnMFWgrH5dECRuNfj0gtfgP6G', '2569', 'ชั้นปีที่ 2', 'ชีววิทยา', NULL, NULL, 'active', 'academic_officer', 'member', '2026-02-22 03:23:18', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(33, '5', '5', 'default.png', '5', 'thanawadeetit@gmail.com', '1111111111', NULL, '$2y$10$ltUTjqWczhdIxwNdZ4is/O63mBpI/P/Dxipl/6/o.e3nlcg5E9Ove', '2569', 'ชั้นปีที่ 1', 'วิทยาการคอมพิวเตอร์', NULL, NULL, 'active', 'club_member', 'no_member', '2026-04-10 21:48:34', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_custom_activities`
+--
+
+CREATE TABLE `user_custom_activities` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `role` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `image_path` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_hard_skills`
+--
+
+CREATE TABLE `user_hard_skills` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `skill_name` varchar(255) NOT NULL,
+  `skill_level` varchar(50) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_hard_skills`
+--
+
+INSERT INTO `user_hard_skills` (`id`, `user_id`, `skill_name`, `skill_level`) VALUES
+(2, 18, 'Photosho', 'ดีเยี่ยม');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_languages`
+--
+
+CREATE TABLE `user_languages` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `lang_name` varchar(255) NOT NULL,
+  `lang_listen` varchar(50) DEFAULT NULL,
+  `lang_speak` varchar(50) DEFAULT NULL,
+  `lang_read` varchar(50) DEFAULT NULL,
+  `lang_write` varchar(50) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -137,6 +228,27 @@ CREATE TABLE `user_skills` (
   `skill_level` int(1) NOT NULL DEFAULT 1 COMMENT 'ระดับคะแนน (เช่น 1-5)',
   `evaluated_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_skills`
+--
+
+INSERT INTO `user_skills` (`skill_id`, `user_id`, `skill_name`, `skill_level`, `evaluated_at`) VALUES
+(61, 18, 'การสื่อสารที่ดี', 5, '2026-04-10 22:23:27'),
+(62, 18, 'การทำงานเป็นทีม', 5, '2026-04-10 22:23:27'),
+(63, 18, 'การแก้ปัญหาเฉพาะหน้า', 5, '2026-04-10 22:23:27'),
+(64, 18, 'การคิดวิเคราะห์', 5, '2026-04-10 22:23:27'),
+(65, 18, 'การบริหารเวลา', 5, '2026-04-10 22:23:27'),
+(66, 18, 'ความรับผิดชอบต่อหน้าที่', 5, '2026-04-10 22:23:28'),
+(67, 18, 'ความคิดสร้างสรรค์', 5, '2026-04-10 22:23:28'),
+(68, 18, 'การปรับตัวเข้ากับสถานการณ์', 5, '2026-04-10 22:23:28'),
+(69, 18, 'ภาวะผู้นำ', 5, '2026-04-10 22:23:28'),
+(70, 18, 'การจัดการความเครียด', 5, '2026-04-10 22:23:28'),
+(71, 18, 'การมีมนุษยสัมพันธ์ที่ดี', 5, '2026-04-10 22:23:28'),
+(72, 18, 'ความละเอียดรอบคอบ', 5, '2026-04-10 22:23:28'),
+(73, 18, 'ความมีวินัย', 5, '2026-04-10 22:23:28'),
+(74, 18, 'การรับฟังความคิดเห็นผู้อื่น', 5, '2026-04-10 22:23:28'),
+(75, 18, 'การตัดสินใจอย่างมีเหตุผล', 5, '2026-04-10 22:23:28');
 
 --
 -- Indexes for dumped tables
@@ -179,6 +291,27 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`user_id`);
 
 --
+-- Indexes for table `user_custom_activities`
+--
+ALTER TABLE `user_custom_activities`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `user_hard_skills`
+--
+ALTER TABLE `user_hard_skills`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `user_languages`
+--
+ALTER TABLE `user_languages`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
 -- Indexes for table `user_skills`
 --
 ALTER TABLE `user_skills`
@@ -193,37 +326,55 @@ ALTER TABLE `user_skills`
 -- AUTO_INCREMENT for table `activities`
 --
 ALTER TABLE `activities`
-  MODIFY `activity_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `activity_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `activity_evidences`
 --
 ALTER TABLE `activity_evidences`
-  MODIFY `evidence_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `evidence_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `activity_registrations`
 --
 ALTER TABLE `activity_registrations`
-  MODIFY `registration_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `registration_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `activity_tasks`
 --
 ALTER TABLE `activity_tasks`
-  MODIFY `task_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
+  MODIFY `task_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+
+--
+-- AUTO_INCREMENT for table `user_custom_activities`
+--
+ALTER TABLE `user_custom_activities`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `user_hard_skills`
+--
+ALTER TABLE `user_hard_skills`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `user_languages`
+--
+ALTER TABLE `user_languages`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `user_skills`
 --
 ALTER TABLE `user_skills`
-  MODIFY `skill_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `skill_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
 
 --
 -- Constraints for dumped tables
@@ -254,6 +405,24 @@ ALTER TABLE `activity_registrations`
 --
 ALTER TABLE `activity_tasks`
   ADD CONSTRAINT `fk_task_activity` FOREIGN KEY (`activity_id`) REFERENCES `activities` (`activity_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `user_custom_activities`
+--
+ALTER TABLE `user_custom_activities`
+  ADD CONSTRAINT `fk_custom_act_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `user_hard_skills`
+--
+ALTER TABLE `user_hard_skills`
+  ADD CONSTRAINT `fk_hardskill_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `user_languages`
+--
+ALTER TABLE `user_languages`
+  ADD CONSTRAINT `fk_lang_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `user_skills`
