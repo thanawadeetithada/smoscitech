@@ -9,50 +9,39 @@ if (!isset($_SESSION['userrole'])) {
 
 $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
 
-$stmt_user = $conn->prepare("SELECT year_level, academic_year, department FROM users WHERE user_id = ?");
-$stmt_user->bind_param("i", $user_id);
-$stmt_user->execute();
-$user_info = $stmt_user->get_result()->fetch_assoc();
+// ดึงข้อมูลผู้ใช้งานจริงสำหรับแสดงผลที่ Navbar
+$stmt_user_profile = $conn->prepare("SELECT first_name, last_name, profile_image, year_level, academic_year, department FROM users WHERE user_id = ?");
+$stmt_user_profile->bind_param("i", $user_id);
+$stmt_user_profile->execute();
+$user_info = $stmt_user_profile->get_result()->fetch_assoc();
 
-$u_year = $user_info['year_level'] ?? '';
-$u_acad = $user_info['academic_year'] ?? '';
-$u_dept = $user_info['department'] ?? '';
+$first_name = $user_info['first_name'] ?? 'ผู้ใช้งาน';
+$full_name = ($user_info['first_name'] ?? '') . ' ' . ($user_info['last_name'] ?? '');
+// ตรวจสอบรูปโปรไฟล์ ถ้าไม่มีให้ใช้รูป default
+$profile_image = !empty($user_info['profile_image']) ? $user_info['profile_image'] : 'default.png';
 
-$stmt_joined = $conn->prepare("SELECT COUNT(*) as total FROM activity_registrations WHERE user_id = ? AND registration_status != 'rejected'");
-$stmt_joined->bind_param("i", $user_id);
-$stmt_joined->execute();
-$total_joined = $stmt_joined->get_result()->fetch_assoc()['total'];
-
-$stmt_pending = $conn->prepare("SELECT COUNT(*) as total FROM activity_registrations WHERE user_id = ? AND registration_status = 'pending'");
-$stmt_pending->bind_param("i", $user_id);
-$stmt_pending->execute();
-$total_pending = $stmt_pending->get_result()->fetch_assoc()['total'];
-
-$sql_upcoming = "
-    SELECT title, start_date, hours_count 
-    FROM activities 
-    WHERE status = 'open' 
-    AND start_date >= CURDATE() 
-    AND (allowed_year_level IS NULL OR allowed_year_level = '' OR allowed_year_level LIKE ?)
-    AND (allowed_academic_year IS NULL OR allowed_academic_year = '' OR allowed_academic_year LIKE ?)
-    AND (allowed_department IS NULL OR allowed_department = '' OR allowed_department LIKE ?)
-    ORDER BY start_date ASC 
-    LIMIT 3
-";
-$stmt_upcoming = $conn->prepare($sql_upcoming);
-
-$like_year = "%" . $u_year . "%";
-$like_acad = "%" . $u_acad . "%";
-$like_dept = "%" . $u_dept . "%";
-$stmt_upcoming->bind_param("sss", $like_year, $like_acad, $like_dept);
-$stmt_upcoming->execute();
-$result_upcoming = $stmt_upcoming->get_result();
-
-$stmt_chart = $conn->prepare("
+// ดึงรายการกิจกรรม 6 รายการล่าสุด
+$stmt_table = $conn->prepare("
     SELECT a.title, a.hours_count 
     FROM activity_registrations ar 
     JOIN activities a ON ar.activity_id = a.activity_id 
     WHERE ar.user_id = ? 
+    ORDER BY ar.registered_at DESC LIMIT 6
+");
+$stmt_table->bind_param("i", $user_id);
+$stmt_table->execute();
+$result_table = $stmt_table->get_result();
+$activities_table = [];
+while ($row = $result_table->fetch_assoc()) {
+    $activities_table[] = $row;
+}
+
+// ดึงข้อมูลสำหรับกราฟ
+$stmt_chart = $conn->prepare("
+    SELECT a.title, a.hours_count 
+    FROM activity_registrations ar 
+    JOIN activities a ON ar.activity_id = a.activity_id 
+    WHERE ar.user_id = ? AND ar.participation_status = 'passed'
     ORDER BY ar.registered_at DESC LIMIT 5
 ");
 $stmt_chart->bind_param("i", $user_id);
@@ -63,304 +52,516 @@ $chart_labels = [];
 $chart_data = [];
 if ($result_chart && $result_chart->num_rows > 0) {
     while ($row = $result_chart->fetch_assoc()) {
-        $chart_labels[] = $row['title'];
+        $chart_labels[] = mb_substr($row['title'], 0, 10) . '...';
         $chart_data[] = $row['hours_count'];
     }
 }
 ?>
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-title" content="App Premium">
-    <meta name="application-name" content="App Premium">
-    <meta name="theme-color" content="#96a1cd">
-    <title>หน้าสถิติการเข้าร่วมกิจกรรม</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <title>สถิติการเข้าร่วมกิจกรรม - SMO SCITECH</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&family=Prompt:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
     :root {
-        --primary-color: #4e73df;
-        --sidebar-width: 250px;
+        --top-bar-bg: #A37E5E;
+        --yellow-sidebar: #FEEFB3;
+        --light-bg: #F4F6F9; 
+        --table-header: #D9D9D9;
+        --table-row: #EFEFEF;
+        --btn-blue: #6358E1;
     }
 
-    body {
-        font-family: 'Prompt', sans-serif;
-        background-color: #f8f9fc;
+    body, html {
+        height: 100%;
         margin: 0;
+        font-family: 'Sarabun', sans-serif;
+        background-color: var(--light-bg);
         overflow-x: hidden;
     }
 
-    .nav-item a {
+    .wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    
+    .top-navbar {
+        background-color: var(--top-bar-bg);
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        padding: 10px 20px;
+        justify-content: space-between;
         color: white;
-        margin-right: 1rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+        position: sticky;
+        top: 0;
     }
 
-    .navbar {
-        padding: 15px 20px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    .brand-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
-    .nav-link:hover {
-        color: #d1d3e2;
+    .brand-logo {
+        width: 60px;
+        height: 60px;
     }
 
-    .main-content {
-        margin: 30px;
-        padding: 20px;
+    .brand-name {
+        font-size: clamp(16px, 4vw, 24px);
+        font-family: serif;
+        letter-spacing: 1px;
+        white-space: nowrap;
     }
 
-    .stat-card {
+    .text-page-pill-btn {
         background: white;
-        border-radius: 12px;
-        padding: 25px;
-        border: none;
-        height: 100%;
-        box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.05);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        color: black;
+        padding: 3px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        font-weight: 500;
     }
 
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.1);
+    .login-pill-btn {
+        background: white;
+        color: black;
+        padding: 6px 25px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 16px;
+        transition: 0.3s;
     }
 
-    .stat-icon {
-        width: 55px;
-        height: 55px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
+    .login-pill-btn:hover {
+        background: #eee;
+        color: black;
     }
 
-    .event-item {
-        display: flex;
-        align-items: center;
-        padding: 15px 0;
-        border-bottom: 1px solid #f1f1f1;
-    }
-
-    .event-item:last-child {
-        border-bottom: none;
-    }
-
-    .event-date {
-        background: #eef2ff;
-        color: var(--primary-color);
-        padding: 8px 10px;
-        border-radius: 10px;
+    .logout-area {
         text-align: center;
-        min-width: 70px;
-        margin-right: 15px;
-        line-height: 1.2;
+        margin-left: 20px;
+    }
+
+    .logout-icon {
+        width: 45px;
+        display: block;
+        margin: 0 auto;
+        filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+    }
+
+    .logout-text {
+        color: #000;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 14px;
+        background: #D9D9D9;
+        padding: 2px 10px;
+        border-radius: 5px;
+        display: block;
+    }
+
+    
+    .main-wrapper {
+        display: flex;
+        flex: 1;
+        position: relative;
+    }
+
+    
+    .sidebar {
+        width: 230px;
+        background-color: var(--yellow-sidebar);
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid rgba(0, 0, 0, 0.05);
+        transition: 0.3s ease-in-out;
+        z-index: 99;
+    }
+
+    .sidebar-item {
+        background: white;
+        padding: 25px 10px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+        text-decoration: none;
+        color: #333;
+        display: block;
+        transition: all 0.3s ease;
+    }
+
+    .sidebar-item:hover {
+        background: #FDFDFD;
+        transform: translateX(5px);
+    }
+
+    .sidebar-item i {
+        font-size: 32px;
+        display: block;
+        margin-bottom: 8px;
+        color: #000;
+    }
+
+    .sidebar-item span {
+        font-weight: bold;
+        font-size: 13px;
+    }
+
+    
+    .content-area {
+        flex-grow: 1;
+        padding: 30px;
+        display: flex;
+        gap: 25px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .ui-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .chart-container {
+        flex: 1.2;
+        min-width: 320px;
+    }
+
+    .table-container {
+        flex: 1;
+        min-width: 320px;
+    }
+
+    .section-title {
+        font-weight: 700;
+        margin-bottom: 25px;
+        font-size: 18px;
+        color: #333;
+        text-align: center;
+    }
+
+    
+    .search-wrap {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 15px;
+    }
+
+    .search-input-group {
+        background: #D9D9D9;
+        border-radius: 10px;
+        padding: 8px 15px;
+        display: flex;
+        align-items: center;
+        width: 200px;
+    }
+
+    .search-input-group input {
+        border: none;
+        background: transparent;
+        font-size: 13px;
+        outline: none;
+        width: 100%;
+        color: #333;
+    }
+
+    .table-responsive-custom {
+        overflow-x: auto;
+        width: 100%;
+    }
+
+    .custom-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+        min-width: 300px;
+    }
+
+    .custom-table th {
+        background: var(--table-header);
+        padding: 12px;
+        text-align: center;
+        font-size: 14px;
+        border: none;
+        color: #333;
+    }
+
+    .custom-table td {
+        background: var(--table-row);
+        padding: 12px;
+        text-align: center;
+        font-size: 14px;
+        border: none;
+        color: #555;
+    }
+
+    .custom-table tr td:first-child {
+        border-radius: 8px 0 0 8px;
+    }
+
+    .custom-table tr td:last-child {
+        border-radius: 0 8px 8px 0;
+    }
+
+    .pagination-bar {
+        background: #D9D9D9;
+        padding: 12px 15px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .btn-purple {
+        background-color: var(--btn-blue);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 6px 25px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: 0.2s;
+    }
+
+    .btn-purple:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    
+    @media (max-width: 991px) {
+        .content-area {
+            padding: 20px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .sidebar {
+            position: absolute;
+            top: 0;
+            left: -230px;
+            height: 100%;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .top-navbar {
+            padding: 10px 15px;
+        }
+
+        .brand-name {
+            font-size: 18px;
+        }
+
+        .content-area {
+            padding: 15px;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chart-container, .table-container {
+            width: 100%;
+            flex: none;
+        }
+
+        .logout-text {
+            padding: 2px !important;
+            font-size: 10px !important;
+        }
+        
+        .logout-area {
+            margin-left: 10px;
+        }
     }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-dark px-3">
-        <div class="d-flex w-100 justify-content-between align-items-center">
-            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
-                style="cursor: pointer;"></i>
-            <div class="nav-item">
-                <a class="nav-link text-white" href="logout.php">
-                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
+    <div class="wrapper">
+        <nav class="top-navbar">
+            <div class="brand-section">
+                <i class="fa-solid fa-bars d-md-none me-2" id="mobileMenuBtn" style="font-size: 24px; cursor: pointer;"></i>
+                <img src="img/logo.png" alt="Logo" class="brand-logo">
+                <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
+                    <span class="brand-name">SMO SCITECH KPRU</span>
+                    <span class="text-page-pill-btn mt-1">สถิติการเข้าร่วมกิจกรรม</span>
+                </div>
             </div>
-        </div>
-    </nav>
+            <div class="d-flex align-items-center">
+                <span class="d-none d-sm-block fw-bold me-2 login-pill-btn">
+                    <?php echo htmlspecialchars($first_name); ?>
+                </span>
 
-    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarMenu">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title">รายการ</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body">
-            <ul class="list-unstyled">
-                <li><a href="report_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio </a></li>
-                <li><a href="transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-file-lines"></i> Transcript</a></li>
-                <li><a href="score_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
-                <li><a href="user_management.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="main-content">
-        <div class="container-fluid p-0">
-            <h4 class="fw-bold mb-4">ภาพรวมกิจกรรมและการดำเนินงานของสโมสร</h4>
-
-            <div class="row mb-4">
-                <div class="col-md-6 mb-3">
-                    <a href="activity.php" class="text-decoration-none text-dark">
-                        <div class="stat-card d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="text-muted fw-bold mb-1">กิจกรรมที่เข้าร่วม</div>
-                                <h2 class="mb-0 fw-bold text-primary"><?php echo number_format($total_joined); ?></h2>
-                            </div>
-                            <div class="stat-icon bg-primary text-white"><i class="fas fa-calendar-check"></i></div>
-                        </div>
+                <div class="logout-area">
+                    <a href="user_management.php">
+                        <img src="uploads/profiles/<?php echo htmlspecialchars($profile_image); ?>" alt="Profile"
+                            style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     </a>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <div class="text-decoration-none text-dark">
-                        <div class="stat-card d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="text-muted fw-bold mb-1">รอการอนุมัติ</div>
-                                <h2 class="mb-0 fw-bold text-warning"><?php echo number_format($total_pending); ?></h2>
-                            </div>
-                            <div class="stat-icon bg-warning text-white"><i class="fas fa-clock"></i></div>
-                        </div>
-                    </div>
+                    <a href="logout.php" class="logout-text mt-1">Log out</a>
                 </div>
             </div>
+        </nav>
 
-            <div class="row">
-                <div class="col-lg-8 mb-4">
-                    <div class="stat-card">
-                        <h5 class="fw-bold mb-4"><i class="fas fa-chart-line text-primary me-2"></i>
-                            ชั่วโมงที่ได้รับจากกิจกรรมล่าสุด (5 รายการ)</h5>
-                        <div style="position: relative; height: 320px; width: 100%;">
-                            <canvas id="userActivityChart"></canvas>
+        <div class="main-wrapper">
+            <aside class="sidebar">
+                <a href="report_activity.php" class="sidebar-item mt-3 mb-3">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>สถิติการเข้าร่วมกิจกรรม</span>
+                </a>
+                <a href="e-portfolio.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>E -portfolio</span>
+                </a>
+                <a href="user_management.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-users"></i>
+                    <span>ข้อมูลสมาชิก</span>
+                </a>
+                <a href="activity.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>ข้อมูลกิจกรรม</span>
+                </a>
+            </aside>
+
+            <main class="content-area">
+                <section class="chart-container ui-card">
+                    <div class="section-title">สถิติการเข้าร่วมกิจกรรม</div>
+                    <div style="height: 350px; width: 100%;">
+                        <canvas id="userActivityChart"></canvas>
+                    </div>
+                </section>
+
+                <section class="table-container ui-card">
+                    <div class="search-wrap">
+                        <div class="search-input-group">
+                            <i class="fa fa-search me-2" style="color: #666;"></i>
+                            <input type="text" placeholder="ค้นหา">
                         </div>
                     </div>
-                </div>
-
-                <div class="col-lg-4 mb-4">
-                    <div class="stat-card">
-                        <h5 class="fw-bold mb-3"><i class="fas fa-calendar-alt text-warning me-2"></i> กิจกรรมเร็วๆ นี้
-                        </h5>
-
-                        <?php 
-                        $thai_months = [
-                            "01" => "ม.ค.", "02" => "ก.พ.", "03" => "มี.ค.", "04" => "เม.ย.",
-                            "05" => "พ.ค.", "06" => "มิ.ย.", "07" => "ก.ค.", "08" => "ส.ค.",
-                            "09" => "ก.ย.", "10" => "ต.ค.", "11" => "พ.ย.", "12" => "ธ.ค."
-                        ];
-
-                        if ($result_upcoming && $result_upcoming->num_rows > 0) {
-                            while ($row = $result_upcoming->fetch_assoc()) {
-                                $date_obj = strtotime($row['start_date']);
-                                $day = date('d', $date_obj);
-                                $month_num = date('m', $date_obj);
-                                $month_thai = $thai_months[$month_num];
-                        ?>
-                        <div class="event-item">
-                            <div class="event-date">
-                                <span
-                                    style="font-size: 20px; font-weight: 700; display: block;"><?php echo $day; ?></span>
-                                <small style="font-size: 13px; font-weight: 500;"><?php echo $month_thai; ?></small>
-                            </div>
-                            <div>
-                                <div class="fw-bold text-dark mb-1"><?php echo htmlspecialchars($row['title']); ?></div>
-                                <div class="text-muted small">
-                                    <i class="far fa-clock me-1"></i> <?php echo $row['hours_count']; ?> ชั่วโมง
-                                </div>
-                            </div>
-                        </div>
-                        <?php 
-                            }
-                        } else {
-                            echo '<div class="text-center text-muted mt-4 p-4 bg-light rounded"><i class="far fa-folder-open fs-1 mb-2 text-secondary"></i><br>ยังไม่มีกิจกรรมที่คุณสามารถเข้าร่วมได้ในขณะนี้</div>';
-                        }
-                        ?>
-
-                        <div class="text-center mt-4 pt-3 border-top">
-                            <a href="activity.php" class="text-decoration-none fw-bold text-primary">ดูกิจกรรมทั้งหมด <i
-                                    class="fas fa-arrow-right ms-1"></i></a>
-                        </div>
+                    <div class="table-responsive-custom">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th width="70%">ชื่อกิจกรรม</th>
+                                    <th width="30%">ชั่วโมง</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($activities_table)): ?>
+                                <tr>
+                                    <td colspan="2" class="text-center py-4 text-muted">ยังไม่มีประวัติการเข้าร่วมกิจกรรม</td>
+                                </tr>
+                                <?php else: ?>
+                                    <?php foreach($activities_table as $act): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($act['title']); ?></td>
+                                        <td><?php echo number_format($act['hours_count']); ?></td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                    
+                                    <?php for($i=count($activities_table); $i<6; $i++): ?>
+                                    <tr>
+                                        <td>&nbsp;</td>
+                                        <td>&nbsp;</td>
+                                    </tr>
+                                    <?php endfor; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-            </div>
+                    <div class="pagination-bar">
+                        <button class="btn-purple">กลับ</button>
+                        <button class="btn-purple">ถัดไป</button>
+                    </div>
+                </section>
+            </main>
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('userActivityChart');
-        if (ctx) {
-            const labels = <?php echo json_encode($chart_labels); ?>;
-            const dataCounts = <?php echo json_encode($chart_data); ?>;
+    $(document).ready(function() {
+        // ระบบเลื่อน Sidebar ในมือถือ (เหมือนฝั่ง Admin)
+        $('#mobileMenuBtn').on('click', function(e) {
+            e.stopPropagation();
+            $('.sidebar').toggleClass('active');
+        });
 
-            new Chart(ctx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'จำนวนชั่วโมงที่ได้รับ',
+        // ปิด Sidebar เมื่อกดพื้นที่ว่าง
+        $(document).on('click', function(e) {
+            if ($(window).width() <= 768) {
+                if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {
+                    $('.sidebar').removeClass('active');
+                }
+            }
+        });
+    });
+
+    // ระบบสร้างกราฟ (ใช้ข้อมูลจริงจาก PHP)
+    // ระบบสร้างกราฟ (ใช้ข้อมูลจริงจาก PHP)
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('userActivityChart').getContext('2d');
+        const labels = <?php echo json_encode($chart_labels); ?>;
+        const dataCounts = <?php echo json_encode($chart_data); ?>;
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'ชั่วโมงกิจกรรมที่ได้รับ',
                         data: dataCounts,
-                        backgroundColor: '#1cc88a',
-                        hoverBackgroundColor: '#17a673',
-                        borderRadius: 6,
-                        barPercentage: 0.5
-                    }]
+                        backgroundColor: '#00004d',
+                        barPercentage: 0.6,
+                        borderRadius: 4
+                    }
+                    // ลบชุดข้อมูล 'เป้าหมาย' ที่เป็น Mock data (dataCounts.map(v => v + 2)) ออกไปแล้ว
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { 
+                        display: true, // เปิดให้แสดง Legend เพื่อให้รู้ว่ากราฟแท่งคืออะไร
+                        position: 'top'
+                    } 
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1,
-                                font: {
-                                    family: 'Prompt'
-                                }
-                            },
-                            grid: {
-                                borderDash: [5, 5]
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                font: {
-                                    family: 'Prompt'
-                                }
-                            },
-                            grid: {
-                                display: false
-                            }
-                        }
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        // ลบ max: 100 ออก เพื่อให้กราฟปรับสเกลแกน Y อัตโนมัติตามข้อมูลชั่วโมงที่มีจริง
+                        ticks: { stepSize: 1 } 
                     },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0,0,0,0.8)',
-                            padding: 12,
-                            titleFont: {
-                                family: 'Prompt',
-                                size: 14
-                            },
-                            bodyFont: {
-                                family: 'Prompt',
-                                size: 13
-                            }
-                        }
+                    x: { 
+                        grid: { display: false } 
                     }
                 }
-            });
-        }
+            }
+        });
     });
     </script>
 </body>
-
 </html>

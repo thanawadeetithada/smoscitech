@@ -2,22 +2,9 @@
 session_start();
 include 'db.php';
 
-$allowed_roles = ['executive', 'academic_officer', 'club_president'];
-
-if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_roles)) {
-    header("Location: index.php");
-    exit();
-}
-
-$user_id = $_SESSION['user_id'];
-$stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
-$stmt_profile->bind_param("i", $user_id);
-$stmt_profile->execute();
-$res_profile = $stmt_profile->get_result();
-$user_data = $res_profile->fetch_assoc();
-// ถ้าไม่มีรูปให้ใช้ default.png
-$profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
-$stmt_profile->close();
+// หน้าสาธารณะ ไม่จำเป็นต้องดึงข้อมูลรูปโปรไฟล์ส่วนตัว
+// ป้องกัน Error สำหรับบุคคลทั่วไปที่ไม่ได้ล็อกอิน
+$profile_image = 'default.png';
 
 // ดึงข้อมูลกิจกรรมและจำนวนผู้ลงทะเบียนจริงจาก Database
 $sql_chart = "SELECT a.title, COUNT(ar.registration_id) as total_reg 
@@ -130,7 +117,6 @@ if ($result_chart && $result_chart->num_rows > 0) {
         display: flex;
         flex: 1;
         position: relative;
-        
     }
 
     
@@ -377,61 +363,22 @@ if ($result_chart && $result_chart->num_rows > 0) {
                 </div>
             </div>
             <div class="d-flex align-items-center">
-                <span class="d-none d-sm-block fw-bold me-2 login-pill-btn">
-                    <?php echo htmlspecialchars($_SESSION['first_name'] ?? 'ผู้ใช้งาน'); ?>
-                </span>
-
-                <div class="logout-area">
-                    <a href="user_management.php"><img
-                            src="uploads/profiles/<?php echo htmlspecialchars($profile_image); ?>" alt="Profile"
-                            style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"></a>
-                    <a href="logout.php" class="logout-text mt-1">Log out</a>
-                </div>
+                <a href="index.php" style="text-decoration: none;">
+                    <i class="fa-solid fa-circle-user ms-3" style="font-size: 40px; color: #333;"></i>
+                </a>
             </div>
         </nav>
 
         <div class="main-wrapper">
             <aside class="sidebar">
-                <a href="admin_report_activity.php" class="sidebar-item mt-3 mb-3">
+                <a href="main_report_activity.php" class="sidebar-item mt-3 mb-3">
                     <i class="fa-solid fa-chart-line"></i>
                     <span>สถิติการเข้าร่วมกิจกรรม</span>
                 </a>
-                <a href="admin_e-portfolio.php" class="sidebar-item mb-3">
+                <a href="main_e-portfolio.php" class="sidebar-item mb-3">
                     <i class="fa-solid fa-book-open"></i>
                     <span>รายงาน E-portfolio</span>
                 </a>
-
-                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'academic_officer'): ?>
-                <a href="admin_user_management.php" class="sidebar-item mb-3">
-                     <i class="fa-solid fa-users"></i>
-                   <span>ข้อมูลสมาชิกสโมสร / นายกสโมสร / รองนายกสโมสร </span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
-                <a href="admin_user_management.php" class="sidebar-item mb-3">
-                     <i class="fa-solid fa-users"></i>
-                   <span>ข้อมูลสมาชิกสโมสร</span>
-                </a>
-                <?php endif; ?>
-
-                <a href="admin_activity.php" class="sidebar-item mb-3">
-                    <i class="fa-solid fa-cubes"></i>
-                    <span>ข้อมูลกิจกรรม</span>
-                </a>
-
-                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
-                <a href="admin_score_activity.php" class="sidebar-item mb-3">
-                    <i class="fa-solid fa-folder-open"></i>
-                    <span>ข้อมูลการเข้าร่วมกิจกรรม</span>
-                </a>
-                <?php endif; ?>
-                <?php if (isset($_SESSION['userrole']) && in_array($_SESSION['userrole'], ['academic_officer', 'club_president'])): ?>
-                <a href="admin_transcript.php" class="sidebar-item">
-                    <i class="fa-solid fa-file-lines"></i>
-                    <span>Transcript</span>
-                </a>
-                <?php endif; ?>
             </aside>
 
             <main class="content-area">

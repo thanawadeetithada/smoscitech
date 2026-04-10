@@ -9,6 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+// --- ดึงข้อมูลผู้ใช้งานสำหรับแสดงผล ---
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $user_id);
@@ -16,14 +17,32 @@ $stmt_user->execute();
 $user_profile = $stmt_user->get_result()->fetch_assoc();
 $stmt_user->close();
 
-$profile_image = 'https://placehold.co/150x150';
+$first_name = $user_profile['first_name'] ?? 'ผู้ใช้งาน';
+$profile_image = 'img/default-profile.png'; // ใช้รูป default หากไม่มี
 if (!empty($user_profile['profile_image']) && $user_profile['profile_image'] != 'default.png') {
     $profile_image = 'uploads/profiles/' . $user_profile['profile_image']; 
 }
 
+// --- ดึงข้อมูลสถิติ 4 กล่อง (ดึงจากข้อมูลจริง) ---
+$sql_stats = "SELECT 
+                COUNT(registration_id) as total_joined,
+                SUM(CASE WHEN participation_status = 'passed' THEN 1 ELSE 0 END) as total_passed,
+                SUM(CASE WHEN participation_status = 'not_passed' THEN 1 ELSE 0 END) as total_failed
+              FROM activity_registrations 
+              WHERE user_id = ? AND registration_status = 'approved'";
+$stmt_stats = $conn->prepare($sql_stats);
+$stmt_stats->bind_param("i", $user_id);
+$stmt_stats->execute();
+$stats_result = $stmt_stats->get_result()->fetch_assoc();
+$total_joined = $stats_result['total_joined'] ?? 0;
+$total_passed = $stats_result['total_passed'] ?? 0;
+$total_failed = $stats_result['total_failed'] ?? 0;
+$stmt_stats->close();
+
 $activities = [];
 $total_hours = 0;
 
+// --- ดึงข้อมูลกิจกรรมที่ผ่านการประเมินแล้ว ---
 $sql_act = "SELECT 
                 a.title, a.start_date, a.end_date, a.hours_count,
                 t.task_name
@@ -43,6 +62,7 @@ while ($row = $result_act->fetch_assoc()) {
     $total_hours += intval($row['hours_count']);
 }
 $stmt_act->close();
+
 $thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 543);
 ?>
@@ -52,565 +72,610 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-title" content="App Premium">
-    <meta name="application-name" content="App Premium">
-    <meta name="theme-color" content="#96a1cd">
-    <title>หน้า Transcript</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <meta name="apple-mobile-web-app-title" content="SMO SCITECH">
+    <meta name="application-name" content="SMO SCITECH">
+    <meta name="theme-color" content="#A37E5E">
+    <title>Transcript - SMO SCITECH</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
     :root {
-        --primary-color: #4e73df;
+        --top-bar-bg: #A37E5E;
+        --yellow-sidebar: #FEEFB3;
+        --light-bg: #EAEAEB;
+        --cert-bg: #FCF9EF;
+        --cert-border: #D1B87F;
+        --text-dark: #333333;
+        --btn-color: #8C6B4E;
+        --btn-hover: #75583E;
     }
 
-    body {
-        font-family: 'Prompt', sans-serif;
-        background-color: #f8f9fc;
+    body, html {
+        height: 100%;
         margin: 0;
+        font-family: 'Sarabun', sans-serif;
+        background-color: var(--light-bg);
+        overflow-x: hidden;
     }
 
-    .nav-item a {
-        color: white;
-        margin-right: 1rem;
+    .wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
     }
 
-    .navbar {
-        padding: 15px 20px;
-    }
-
-    .nav-link:hover {
-        color: white;
-    }
-
-    .main-content {
-        max-width: 1000px;
-        margin: 30px auto;
-        padding: 0 15px;
-    }
-
-    .profile-header {
-        background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-        height: 150px;
-        border-radius: 15px 15px 0 0;
-        position: relative;
-    }
-
-    .profile-img-container {
-        position: absolute;
-        bottom: -40px;
-        left: 40px;
-    }
-
-    .profile-img {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        border: 4px solid #fff;
-        object-fit: cover;
-        background: white;
-    }
-
-    .profile-info {
-        padding-top: 10px;
-        padding-left: 180px;
-        padding-bottom: 20px;
-    }
-
-    .transcript-card {
-        border: 1px solid #e3e6f0;
-        border-radius: 10px;
-        background-color: #fff;
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-    }
-
-    .table th {
-        font-weight: 600;
-        color: #495057;
-        background-color: #fff;
-        border-bottom: 2px solid #e3e6f0;
-    }
-
-    .table td {
-        vertical-align: middle;
-        padding: 1rem 0.75rem;
-    }
-
-    .status-badge {
-        color: #1cc88a;
-        font-weight: bold;
-    }
-
-    .signature-area {
-        font-family: 'Sarabun', serif;
-        font-style: italic;
-        color: #4e73df;
-        font-size: 1.2rem;
-    }
-
-    .total-hours-row {
-        background-color: #f8f9fc;
-        font-weight: bold;
-        color: #2563eb;
-    }
-
-    .footer-note {
-        background-color: #eef2ff;
-        border: 1px dashed #a5b4fc;
-        color: #1e40af;
-        border-radius: 8px;
-    }
-
-    .print-btn-float {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background-color: #2c3e50;
-        color: white;
-        border: 2px solid white;
+    
+    .top-navbar {
+        background-color: var(--top-bar-bg);
+        min-height: 80px;
         display: flex;
         align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        z-index: 1000;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-
-    .print-btn-float:hover {
-        transform: scale(1.1);
-        background-color: #1a252f;
+        padding: 10px 20px;
+        justify-content: space-between;
         color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+        position: sticky;
+        top: 0;
     }
 
+    .brand-section { display: flex; align-items: center; gap: 12px; }
+    .brand-logo { width: 60px; height: 60px; object-fit: contain; }
+    .brand-name {
+        font-size: clamp(16px, 4vw, 24px);
+        font-family: serif;
+        letter-spacing: 1px;
+        white-space: nowrap;
+    }
+    
+    .text-page-pill-btn {
+        background: white;
+        color: black;
+        padding: 4px 25px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .login-pill-btn {
+        background: #E8F0FE;
+        color: black;
+        padding: 8px 25px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 16px;
+    }
+
+    .logout-area { text-align: center; margin-left: 20px; }
+    .logout-text {
+        color: #000;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 14px;
+        background: #D9D9D9;
+        padding: 2px 10px;
+        border-radius: 5px;
+        display: block;
+    }
+
+    
+    .main-wrapper { display: flex; flex: 1; position: relative; }
+    .sidebar {
+        width: 230px;
+        background-color: var(--yellow-sidebar);
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid rgba(0, 0, 0, 0.05);
+        transition: 0.3s ease-in-out;
+        z-index: 99;
+    }
+    .sidebar-item {
+        background: white;
+        padding: 25px 10px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+        text-decoration: none;
+        color: #333;
+        display: block;
+        transition: all 0.3s ease;
+    }
+    .sidebar-item:hover { background: #FDFDFD; transform: translateX(5px); }
+    .sidebar-item i { font-size: 32px; display: block; margin-bottom: 8px; color: #000; }
+    .sidebar-item span { font-weight: bold; font-size: 13px; }
+
+    
+    .content-area { flex-grow: 1; padding: 30px; position: relative; }
+    
+    .cert-wrapper {
+        background-color: var(--cert-bg);
+        max-width: 850px;
+        margin: 0 auto;
+        padding: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        position: relative;
+    }
+    
+    .cert-border {
+        border: 2px solid var(--cert-border);
+        padding: 40px;
+        position: relative;
+        min-height: 1000px;
+    }
+    .cert-border::after {
+        content: '';
+        position: absolute;
+        top: 6px; left: 6px; right: 6px; bottom: 6px;
+        border: 1px solid var(--cert-border);
+        pointer-events: none;
+    }
+
+    .cert-header { text-align: center; margin-bottom: 30px; }
+    .cert-title {
+        color: #1A365D;
+        font-weight: bold;
+        font-size: 26px;
+        margin-bottom: 5px;
+    }
+    .cert-subtitle { color: #666; font-size: 18px; }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 120px;
+        gap: 20px;
+        margin-bottom: 30px;
+        font-size: 15px;
+        color: #333;
+    }
+    .info-table td { padding: 4px 10px 4px 0; vertical-align: top; }
+    .info-table td:first-child { font-weight: 600; white-space: nowrap; width: 1%; }
+    .student-img {
+        width: 110px; height: 140px;
+        object-fit: cover;
+        border: 2px solid #E2D3B3;
+        padding: 2px;
+        background: #fff;
+    }
+
+    
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-bottom: 35px;
+    }
+    .stat-card {
+        border-radius: 8px;
+        padding: 15px 10px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .stat-card.blue { background-color: #EBF4FA; border: 1px solid #BEE3F8; }
+    .stat-card.pink { background-color: #FEF0F5; border: 1px solid #FED7E2; }
+    .stat-card.purple { background-color: #F3E8FF; border: 1px solid #E9D8FD; }
+    .stat-card.yellow { background-color: #FFFAF0; border: 1px solid #FEEBC8; }
+    
+    .stat-icon {
+        width: 35px; height: 35px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 8px; background: white; font-size: 16px;
+    }
+    .stat-card.blue .stat-icon { color: #3182CE; }
+    .stat-card.pink .stat-icon { color: #D53F8C; }
+    .stat-card.purple .stat-icon { color: #805AD5; }
+    .stat-card.yellow .stat-icon { color: #D69E2E; }
+    
+    .stat-title { font-size: 13px; color: #555; margin-bottom: 5px; line-height: 1.2; }
+    .stat-value { font-size: 20px; font-weight: bold; color: #222; }
+    .stat-unit { font-size: 12px; font-weight: normal; }
+
+    
+    .cert-table {
+        width: 100%; border-collapse: collapse;
+        font-size: 14px; margin-bottom: 40px;
+    }
+    .cert-table th {
+        background-color: #F8F1E5; color: #555;
+        padding: 12px 10px; border-bottom: 2px solid #E2D3B3;
+        font-weight: 600; text-align: center;
+    }
+    .cert-table td { padding: 12px 10px; border-bottom: 1px dashed #E2D3B3; vertical-align: middle; }
+    .status-pass {
+        background-color: #48BB78; color: white;
+        padding: 4px 15px; border-radius: 15px;
+        font-size: 12px; display: inline-block; font-weight: bold;
+    }
+
+    
+    .signature-section {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 50px;
+        padding: 0 20px;
+    }
+    .signature-box {
+        text-align: center;
+        width: 280px;
+    }
+    .sig-line {
+        margin: 20px 0 10px; color: #666; letter-spacing: 2px;
+    }
+
+    
+    .print-btn-float {
+        position: fixed;
+        bottom: 30px; right: 30px;
+        width: 65px; height: 65px;
+        border-radius: 50%;
+        background-color: var(--btn-color);
+        color: white;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        z-index: 1000; cursor: pointer; transition: 0.3s;
+    }
+    .print-btn-float:hover {
+        transform: translateY(-5px);
+        background-color: var(--btn-hover); color: white;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    
     @media (max-width: 768px) {
-        .main-content {
-            margin: 15px auto;
+        .sidebar {
+            position: absolute; top: 0; left: -230px; height: 100%;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
         }
-
-        .profile-header {
-            height: 120px;
+        .sidebar.active { left: 0; }
+        .top-navbar { padding: 10px 15px; }
+        .brand-name { font-size: 18px; }
+        .logout-text { padding: 2px !important; font-size: 9px !important; }
+        
+        .content-area { padding: 15px; }
+        .cert-wrapper { padding: 10px; }
+        .cert-border { padding: 15px; min-height: auto; }
+        
+        .info-grid { grid-template-columns: 1fr; text-align: center; }
+        .info-table { margin: 0 auto; text-align: left; }
+        .student-img { margin: 15px auto 0; display: block; }
+        
+        .stats-container { grid-template-columns: 1fr 1fr; }
+        
+        
+        .cert-table thead { display: none; }
+        .cert-table, .cert-table tbody, .cert-table tr, .cert-table td { display: block; width: 100%; }
+        .cert-table tr { margin-bottom: 15px; border: 1px solid #E2D3B3; border-radius: 8px; padding: 10px; }
+        .cert-table td {
+            text-align: right; padding-left: 50%; position: relative; border-bottom: 1px solid #f0f0f0;
         }
-
-        .profile-img-container {
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: -50px;
+        .cert-table td::before {
+            content: attr(data-label); position: absolute; left: 10px; width: 45%;
+            padding-right: 10px; white-space: nowrap; text-align: left; font-weight: bold; color: #666;
         }
-
-        .profile-info {
-            padding: 65px 20px 20px 20px;
-            text-align: center;
-        }
-
-        .profile-info .d-flex {
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .export-btn-container {
-            text-align: center;
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        .transcript-card {
-            padding: 1.5rem !important;
-        }
-
-        .table thead {
-            display: none;
-        }
-
-        .table tr {
-            display: block;
-            border: 1px solid #e3e6f0;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            padding: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
-        }
-
-        .table td {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 5px !important;
-            border-bottom: 1px solid #f8f9fc;
-            font-size: 0.95rem;
-        }
-
-        .table td:last-child {
-            border-bottom: none;
-        }
-
-        .table td::before {
-            content: attr(data-label);
-            font-weight: bold;
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-
-        .table td[data-label="กิจกรรม"] {
-            flex-direction: column;
-            align-items: flex-end;
-            text-align: right;
-        }
-
-        .total-hours-row td {
-            justify-content: space-between;
-            background-color: #eef2ff;
-            border-radius: 8px;
-            border: none;
-        }
-
-        .total-hours-row td::before {
-            content: none;
-        }
-
-        .signature-row {
-            flex-direction: column;
-            gap: 30px;
-            text-align: center !important;
-        }
-
-        .signature-row .text-md-end,
-        .signature-row .text-md-start {
-            text-align: center !important;
-        }
-
-        .signature-row div[style*="width: 200px"],
-        .signature-row div[style*="width: 150px"] {
-            margin: 0 auto !important;
-        }
+        .cert-table td:last-child { border-bottom: 0; }
+        
+        .total-row td { text-align: center !important; padding-left: 10px !important; }
+        .total-row td::before { display: none; }
+        
+        .signature-section { flex-direction: column; align-items: center; gap: 40px; margin-top: 30px; }
     }
 
+    
     @media print {
-        @page {
-            margin: 0;
-            size: A4 portrait;
+        @page { 
+            margin: 0; 
+            size: A4 portrait; 
         }
-
-        body {
-            background-color: #fff;
+        
+        * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            margin: 0;
-            padding: 1.5cm;
-            font-size: 14px !important;
+            color-adjust: exact !important;
+            box-sizing: border-box !important; 
         }
 
-        body>*:not(.main-content) {
-            display: none !important;
+        body { 
+            background-color: var(--light-bg) !important; 
+            margin: 0; 
+            padding: 0; 
+            font-size: 14px; 
+            width: 100%;
         }
-
-        .d-print-none {
-            display: none !important;
+        
+        .top-navbar, .sidebar, .print-btn-float { display: none !important; }
+        .main-wrapper { display: block; width: 100%; }
+        .content-area { padding: 0 !important; margin: 0 !important; width: 100%; }
+        
+        .cert-wrapper { 
+            box-shadow: none !important; 
+            width: 210mm !important; 
+            height: 297mm !important; 
+            padding: 12mm !important; 
+            margin: 0 auto !important;
+            background-color: var(--cert-bg) !important;
+            overflow: hidden !important;
+            page-break-after: avoid !important; 
         }
-
-        .main-content,
-        .container {
-            margin: 0 !important;
-            padding: 0 !important;
-            max-width: 100% !important;
-            width: 100% !important;
-        }
-
-        .transcript-card {
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            border-radius: 0 !important;
-        }
-
-        .row {
+        
+        .cert-border { 
+            height: 100% !important; 
+            min-height: auto !important;
+            border: 2px solid var(--cert-border) !important;
             display: flex !important;
-            flex-wrap: nowrap !important;
-            flex-direction: row !important;
-        }
-
-        .col-md-6 {
-            flex: 0 0 50% !important;
-            max-width: 50% !important;
-            width: 50% !important;
-        }
-
-        .text-md-end {
-            text-align: right !important;
-        }
-
-        .text-md-start {
-            text-align: left !important;
-        }
-
-        .table {
-            display: table !important;
-            width: 100% !important;
-            border-collapse: collapse !important;
-        }
-
-        .table thead {
-            display: table-header-group !important;
-        }
-
-        .table tbody {
-            display: table-row-group !important;
-        }
-
-        .table tr {
-            display: table-row !important;
-            border: none !important;
-            box-shadow: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            page-break-inside: avoid !important;
-        }
-
-        .table th,
-        .table td {
-            display: table-cell !important;
-            padding: 12px 8px !important;
-            border-bottom: 1px solid #e3e6f0 !important;
-            text-align: left !important;
-            vertical-align: middle !important;
-            font-size: 14px !important;
-        }
-
-        .table td::before {
-            display: none !important;
-        }
-
-        .table td[data-label="กิจกรรม"] {
             flex-direction: column !important;
-            align-items: flex-start !important;
-            text-align: left !important;
+            padding: 30px !important;
+            position: relative !important;
+        }
+        
+        .cert-border::after {
+            border: 1px solid var(--cert-border) !important;
+            top: 5px !important; left: 5px !important; right: 5px !important; bottom: 5px !important;
         }
 
-        .table th.text-center,
-        .table td.text-center {
-            text-align: center !important;
-        }
-
-        .table th.text-end,
-        .table td.text-end {
-            text-align: right !important;
-        }
-
-        .signature-row {
+        .info-grid {
             display: flex !important;
-            align-items: flex-end !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+        }
+
+        .stats-container {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            gap: 10px !important;
+        }
+        .stat-card {
+            flex: 1 !important;
+            width: 25% !important; 
+            padding: 10px 5px !important;
+        }
+
+        .stat-card.blue { background-color: #EBF4FA !important; border: 1px solid #BEE3F8 !important; }
+        .stat-card.pink { background-color: #FEF0F5 !important; border: 1px solid #FED7E2 !important; }
+        .stat-card.purple { background-color: #F3E8FF !important; border: 1px solid #E9D8FD !important; }
+        .stat-card.yellow { background-color: #FFFAF0 !important; border: 1px solid #FEEBC8 !important; }
+
+        .cert-table { 
+            display: table !important; 
+            width: 100% !important; 
+            border-collapse: collapse !important; 
+            table-layout: fixed !important; 
+        }
+        .cert-table thead { display: table-header-group !important; }
+        .cert-table tbody { display: table-row-group !important; } 
+        .cert-table tr { display: table-row !important; border: none !important; }
+        
+        .cert-table th { 
+            display: table-cell !important; 
+            text-align: center !important; 
+            padding: 8px 4px !important; 
+            background-color: #F8F1E5 !important; 
+            border-bottom: 2px solid #E2D3B3 !important;
+            vertical-align: middle !important;
+            word-wrap: break-word !important; 
+        }
+        
+        .cert-table th:first-child {
+            width: 8% !important; 
+            white-space: nowrap !important; 
+        }
+
+        .cert-table td { 
+            display: table-cell !important; 
+            text-align: center !important; 
+            padding: 8px 4px !important; 
+            border-bottom: 1px dashed #E2D3B3 !important;
+            vertical-align: middle !important;
+            word-wrap: break-word !important; 
+        }
+        
+        
+        .cert-table td[data-label="ชื่อกิจกรรม"] { text-align: left !important; }
+        .cert-table td[data-label="บทบาท"] { text-align: center !important; }
+        
+        .cert-table td::before { display: none !important; } 
+        
+        .total-row, .total-row td { background-color: #FCF9EF !important; text-align: right !important; }
+        .total-row td:nth-last-child(2), .total-row td:last-child { text-align: center !important; }
+        
+        .status-pass { background-color: #48BB78 !important; color: white !important; }
+
+        .signature-section { 
+            display: flex !important;
+            flex-direction: row !important; 
+            justify-content: space-between !important; 
+            margin-top: auto !important; 
+            padding: 0 10px !important;
             page-break-inside: avoid !important;
-            break-inside: avoid !important;
-        }
-
-        .signature-row .col-md-6 {
-            margin-top: 0 !important;
-        }
-
-        .footer-note,
-        .print-protect {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-        }
-
-        .total-hours-row td {
-            background-color: #f8f9fc !important;
-            border-top: none !important;
-        }
-
-        .table td.text-primary,
-        .total-hours-row td.text-primary {
-            color: #000 !important;
-        }
-
-        .total-hours-row td {
-            background-color: #f8f9fc !important;
-            border-top: none !important;
-            color: #000 !important;
         }
     }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-dark px-3">
-        <div class="d-flex w-100 justify-content-between align-items-center">
-            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
-                style="cursor: pointer;"></i>
-            <div class="nav-item">
-                <a class="nav-link text-white" href="logout.php">
-                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarMenu">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title">รายการ</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body">
-            <ul class="list-unstyled">
-                <li><a href="report_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li><a href="e-portfolio.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-address-book"></i> E-Portfolio </a></li>
-                <li><a href="transcript.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-file-lines"></i> Transcript</a></li>
-                <li><a href="score_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-regular fa-star"></i> คะแนนกิจกรรม</a></li>
-                <li><a href="user_management.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
-            </ul>
-        </div>
-    </div>
-    <div class="main-content">
-
-        <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden d-print-none">
-            <div class="profile-header">
-                <div class="profile-img-container">
-                    <img src="<?php echo $profile_image; ?>" alt="Profile" class="profile-img">
+    <div class="wrapper">
+        <nav class="top-navbar d-print-none">
+            <div class="brand-section">
+                <i class="fa-solid fa-bars d-md-none me-2" id="mobileMenuBtn" style="font-size: 24px; cursor: pointer;"></i>
+                <img src="img/logo.png" alt="Logo" class="brand-logo">
+                <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
+                    <span class="brand-name">SMO SCITECH KPRU</span>
+                    <span class="text-page-pill-btn mt-1">Transcript</span>
                 </div>
             </div>
-            <div class="card-body pt-0 pb-4">
-                <div
-                    class="d-flex flex-column flex-md-row justify-content-between align-items-center align-items-md-end">
-                    <div class="profile-info">
-                        <h2 class="fw-bold mb-1 text-dark">
-                            <?php echo htmlspecialchars($user_profile['first_name'] . ' ' . $user_profile['last_name']); ?>
-                        </h2>
-                        <p class="text-muted mb-2 fs-6"><i class="fa-regular fa-id-badge me-1"></i> รหัสนักศึกษา: <span
-                                class="fw-bold text-dark"><?php echo htmlspecialchars($user_profile['idstudent'] ?? 'ไม่ระบุ'); ?></span>
-                        </p>
-                        <div class="d-flex gap-2 mb-2">
-                            <span class="badge bg-light text-primary border p-2">
-                                <i class="fas fa-flask"></i> คณะวิทยาศาสตร์และเทคโนโลยี
-                            </span>
+            <div class="d-flex align-items-center">
+                <span class="d-none d-sm-block login-pill-btn me-3">
+                    <?php echo htmlspecialchars($first_name); ?>
+                </span>
+                <div class="logout-area">
+                    <a href="user_management.php">
+                        <img src="<?php echo htmlspecialchars($profile_image); ?>" alt="Profile" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                    </a>
+                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="main-wrapper">
+            <aside class="sidebar d-print-none">
+                <a href="report_activity.php" class="sidebar-item mt-3 mb-3">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>สถิติการเข้าร่วมกิจกรรม</span>
+                </a>
+                <a href="e-portfolio.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>E -portfolio</span>
+                </a>
+                <a href="user_management.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-users"></i>
+                    <span>ข้อมูลสมาชิก</span>
+                </a>
+                <a href="activity.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>ข้อมูลกิจกรรม</span>
+                </a>
+                <a href="transcript.php" class="sidebar-item mb-3" style="background: #FDFDFD; border-left: 5px solid var(--top-bar-bg);">
+                    <i class="fa-regular fa-file-lines" style="color: var(--top-bar-bg);"></i>
+                    <span style="color: var(--top-bar-bg);">Transcript</span>
+                </a>
+                <a href="score_activity.php" class="sidebar-item mb-3">
+                    <i class="fa-regular fa-star"></i>
+                    <span>ส่งผลประเมิน</span>
+                </a>
+            </aside>
+
+            <main class="content-area">
+                <div class="cert-wrapper">
+                    <div class="cert-border">
+                        
+                        <div class="cert-header">
+                            <h2 class="cert-title">ใบแสดงผลการเข้าร่วมกิจกรรม</h2>
+                            <div class="cert-subtitle">(Activity Transcript)</div>
                         </div>
-                    </div>
-                    <div class="export-btn-container mb-2">
-                        <button class="btn btn-primary px-4 py-2 rounded-pill shadow-sm fw-bold d-print-none"
-                            onclick="window.print()">
-                            <i class="fas fa-download me-2"></i> Export PDF
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="transcript-card p-4 p-md-5">
-            <div class="d-flex justify-content-between mb-4 pb-3 border-bottom print-protect">
-                <div class="w-100">
-                    <h3 class="fw-bold mb-1 text-center">ใบแสดงผลการเข้าร่วมกิจกรรม<br><small
-                            class="text-muted fs-5">(Activity Transcript)</small></h3>
-                    <div class="row mt-4 text-dark fs-6">
-                        <div class="col-md-6 text-center text-md-start">
-                            <p class="mb-2"><strong>ชื่อ-นามสกุล:</strong>
-                                <?php echo htmlspecialchars($user_profile['first_name'] . ' ' . $user_profile['last_name']); ?>
-                            </p>
-                            <p class="mb-2"><strong>สาขาวิชา:</strong>
-                                <?php echo htmlspecialchars($user_profile['department'] ?? '-'); ?></p>
+                        <div class="info-grid">
+                            <div>
+                                <table class="info-table">
+                                    <tr>
+                                        <td>ชื่อ-สกุล</td>
+                                        <td>: <?php echo htmlspecialchars($user_profile['first_name'] . ' ' . $user_profile['last_name']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td>ชั้นปี</td>
+                                        <td>: <?php echo htmlspecialchars($user_profile['year_level'] ?? '-'); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td>รหัสนักศึกษา</td>
+                                        <td>: <?php echo htmlspecialchars($user_profile['idstudent'] ?? '-'); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td>สาขาวิชา</td>
+                                        <td>: <?php echo htmlspecialchars($user_profile['department'] ?? '-'); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td>วันที่ออกใบรับรอง</td>
+                                        <td>: <?php echo $current_date; ?></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="text-md-end text-center">
+                                <img src="<?php echo $profile_image; ?>" class="student-img" alt="Student Photo">
+                            </div>
                         </div>
-                        <div class="col-md-6 text-center text-md-end">
-                            <p class="mb-2"><strong>รหัสนักศึกษา:</strong>
-                                <?php echo htmlspecialchars($user_profile['idstudent'] ?? '-'); ?></p>
-                            <p class="mb-2"><strong>วันที่ออกใบรับรอง:</strong> <?php echo $current_date; ?></p>
+
+                        <div class="stats-container">
+                            <div class="stat-card blue">
+                                <div class="stat-icon"><i class="fa-solid fa-user-plus"></i></div>
+                                <div class="stat-title">เข้าร่วมกิจกรรม</div>
+                                <div><span class="stat-value"><?php echo number_format($total_joined); ?></span> <span class="stat-unit">กิจกรรม</span></div>
+                            </div>
+                            <div class="stat-card pink">
+                                <div class="stat-icon"><i class="fa-solid fa-check"></i></div>
+                                <div class="stat-title">ผ่านการประเมิน</div>
+                                <div><span class="stat-value"><?php echo number_format($total_passed); ?></span> <span class="stat-unit">กิจกรรม</span></div>
+                            </div>
+                            <div class="stat-card purple">
+                                <div class="stat-icon"><i class="fa-solid fa-xmark"></i></div>
+                                <div class="stat-title">ไม่ผ่านการประเมิน</div>
+                                <div><span class="stat-value"><?php echo number_format($total_failed); ?></span> <span class="stat-unit">กิจกรรม</span></div>
+                            </div>
+                            <div class="stat-card yellow">
+                                <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+                                <div class="stat-title">ชั่วโมงกิจกรรมสะสม</div>
+                                <div><span class="stat-value"><?php echo number_format($total_hours); ?></span> <span class="stat-unit">ชั่วโมง</span></div>
+                            </div>
                         </div>
+
+                        <div style="font-size: 15px; margin-bottom: 12px; font-weight: 600; color: #1A365D;">
+                            <i class="fa-solid fa-list-check me-2"></i>ประวัติการเข้าร่วมกิจกรรมที่ผ่านประเมิน
+                        </div>
+                        <div class="cert-table-container">
+                            <table class="cert-table">
+                                <thead>
+                                    <tr>
+                                        <th width="8%">ลำดับ</th>
+                                        <th width="32%">ชื่อกิจกรรม</th>
+                                        <th width="20%">บทบาท</th>
+                                        <th width="15%">วันที่เข้าร่วม</th>
+                                        <th width="10%">ชั่วโมง</th>
+                                        <th width="15%">สถานะ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (count($activities) > 0): ?>
+                                        <?php 
+                                        $i = 1;
+                                        foreach ($activities as $act): 
+                                            $start = date('d/m/Y', strtotime($act['start_date']));
+                                            $end = date('d/m/Y', strtotime($act['end_date']));
+                                            $date_str = ($start == $end) ? $start : "$start - $end";
+                                        ?>
+                                        <tr>
+                                            <td data-label="ลำดับ" class="text-center"><?php echo $i++; ?></td>
+                                            <td data-label="ชื่อกิจกรรม" style="text-align: left;"><?php echo htmlspecialchars($act['title']); ?></td>
+                                            <td data-label="บทบาท" class="text-center"><?php echo htmlspecialchars($act['task_name'] ?? 'ผู้เข้าร่วมทั่วไป'); ?></td>
+                                            <td data-label="วันที่เข้าร่วม" class="text-center"><?php echo $date_str; ?></td>
+                                            <td data-label="ชั่วโมง" class="text-center fw-bold"><?php echo intval($act['hours_count']); ?></td>
+                                            <td data-label="สถานะ" class="text-center"><span class="status-pass">ผ่าน</span></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                        <tr class="total-row">
+                                            <td colspan="4" class="text-end" style="border-bottom: none; font-weight: bold;">รวมชั่วโมงกิจกรรมทั้งหมด</td>
+                                            <td class="text-center" style="border-bottom: none; font-weight: bold; font-size: 18px; color: #1A365D;"><?php echo $total_hours; ?></td>
+                                            <td style="border-bottom: none; font-weight: bold;">ชั่วโมง</td>
+                                        </tr>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="6" class="text-center" style="padding: 30px; color: #999; border: none;">ยังไม่มีประวัติกิจกรรมที่ผ่านการประเมิน</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="signature-section">
+                            <div class="signature-box">
+                                <div class="sig-line">( ....................................... )</div>
+                                <div class="fw-bold text-dark mt-2"><?php echo htmlspecialchars($user_profile['first_name'] . ' ' . $user_profile['last_name']); ?></div>
+                                <div class="text-muted small mt-1">สมาชิกสโมสร / นักศึกษาผู้รับรอง</div>
+                            </div>
+                            <div class="signature-box">
+                                <div class="sig-line">( ....................................... )</div>
+                                <div class="fw-bold text-dark mt-2">ผู้รับรองกิจกรรม</div>
+                                <div class="text-muted small mt-1">สโมสรนักศึกษาคณะวิทยาศาสตร์และเทคโนโลยี</div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
-            </div>
-
-            <div class="table-responsive mb-4">
-                <table class="table table-borderless align-middle">
-                    <thead>
-                        <tr>
-                            <th scope="col" width="5%" class="text-center">ลำดับ</th>
-                            <th scope="col" width="45%">ชื่อกิจกรรม</th>
-                            <th scope="col" width="25%">บทบาท/หน้าที่</th>
-                            <th scope="col" width="10%" class="text-center">ชั่วโมง</th>
-                            <th scope="col" width="15%" class="text-end">สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (count($activities) > 0): ?>
-                        <?php 
-                            $i = 1;
-                            foreach ($activities as $act): 
-                                $start = date('d/m/Y', strtotime($act['start_date']));
-                                $end = date('d/m/Y', strtotime($act['end_date']));
-                                $date_str = ($start == $end) ? $start : "$start - $end";
-                            ?>
-                        <tr>
-                            <td data-label="ลำดับ" class="text-center"><?php echo $i++; ?></td>
-                            <td data-label="กิจกรรม">
-                                <div class="fw-bold text-dark"><?php echo htmlspecialchars($act['title']); ?></div>
-                                <small class="text-muted"><i class="fa-regular fa-calendar me-1"></i>
-                                    <?php echo $date_str; ?></small>
-                            </td>
-                            <td data-label="บทบาท">
-                                <?php echo htmlspecialchars($act['task_name'] ?? 'ผู้เข้าร่วมทั่วไป'); ?></td>
-                            <td data-label="ชั่วโมง" class="text-center fw-bold text-primary">
-                                <?php echo intval($act['hours_count']); ?></td>
-                            <td data-label="สถานะ" class="text-end status-badge"><i
-                                    class="fa-solid fa-circle-check me-1"></i> ผ่าน</td>
-                        </tr>
-                        <?php endforeach; ?>
-
-                        <tr class="total-hours-row">
-                            <td colspan="3" class="text-end">รวมชั่วโมงกิจกรรมทั้งหมด:</td>
-                            <td class="text-center fs-5 text-primary"><?php echo $total_hours; ?></td>
-                            <td class="text-end">ชั่วโมง</td>
-                        </tr>
-                        <?php else: ?>
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                <i class="fa-regular fa-folder-open mb-2 fs-4 d-block"></i>
-                                ยังไม่มีประวัติกิจกรรมที่ผ่านการประเมิน
-                            </td>
-                        </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="row mt-5 mb-4 signature-row align-items-end">
-                <div class="col-md-6 text-center text-md-start">
-                    <div class="text-muted d-none d-md-block">(
-                        ............................................................ )</div>
-                    <div class="text-muted d-block d-md-none">( ........................................ )</div>
-                    <div class="mt-2 text-dark">
-                        <strong><?php echo htmlspecialchars($user_profile['first_name'] . ' ' . $user_profile['last_name']); ?></strong><br>
-                        <small class="text-muted">นักศึกษาผู้รับรอง</small>
-                    </div>
-                </div>
-                <div class="col-md-6 text-center text-md-end mt-4 mt-md-0">
-                    <div class="text-muted d-none d-md-block">(
-                        ............................................................ )</div>
-                    <div class="text-muted d-block d-md-none">( ........................................ )</div>
-                    <div class="mt-2 text-dark fw-bold">ผู้รับรองกิจกรรม</div>
-                    <div class="text-muted small">สโมสรนักศึกษาคณะวิทยาศาสตร์และเทคโนโลยี</div>
-                </div>
-            </div>
-
-            <div class="footer-note p-3 d-flex align-items-start mt-4">
-                <i class="fa-solid fa-circle-info mt-1 me-3 text-primary fs-5"></i>
-                <small class="text-dark">
-                    ใบรับรองนี้ใช้เพื่อแสดงผลการเข้าร่วมกิจกรรมของนักศึกษาคณะวิทยาศาสตร์และเทคโนโลยีเท่านั้น<br>
-                    สามารถนำไปใช้ประกอบการยื่นขอทุนการศึกษา หรือกองทุนเงินให้กู้ยืมเพื่อการศึกษา (กยศ.)
-                    ได้ตามระเบียบของมหาวิทยาลัย
-                </small>
-            </div>
-
+            </main>
         </div>
     </div>
 
@@ -618,11 +683,25 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
         <i class="fas fa-print"></i>
     </div>
 
-    <style>
-    .hover-bg:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-    }
-    </style>
-</body>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        // Mobile Sidebar Toggle
+        $('#mobileMenuBtn').on('click', function(e) {
+            e.stopPropagation();
+            $('.sidebar').toggleClass('active');
+        });
 
+        // Click outside to close sidebar
+        $(document).on('click', function(e) {
+            if ($(window).width() <= 768) {
+                if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {
+                    $('.sidebar').removeClass('active');
+                }
+            }
+        });
+    });
+    </script>
+</body>
 </html>

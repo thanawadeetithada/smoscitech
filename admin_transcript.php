@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'db.php';
+require 'db.php';
 
 $allowed_roles = ['executive', 'academic_officer', 'club_president'];
 
@@ -9,6 +9,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
+// --- ดึงข้อมูลรูปโปรไฟล์ (แบบเดียวกับ admin_report_activity.php) ---
 $user_id = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
@@ -18,39 +19,32 @@ $user_data = $res_profile->fetch_assoc();
 // ถ้าไม่มีรูปให้ใช้ default.png
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $stmt_profile->close();
+// ---------------------------------------------------------
 
-// ดึงข้อมูลกิจกรรมและจำนวนผู้ลงทะเบียนจริงจาก Database
-$sql_chart = "SELECT a.title, COUNT(ar.registration_id) as total_reg 
-              FROM activities a 
-              LEFT JOIN activity_registrations ar ON a.activity_id = ar.activity_id 
-              GROUP BY a.activity_id 
-              ORDER BY a.start_date DESC LIMIT 6"; 
-$result_chart = $conn->query($sql_chart);
+// ดึงข้อมูลจริงจากฐานข้อมูลสำหรับตาราง E-portfolio
+$stmt = $conn->prepare("SELECT user_id, idstudent, email, first_name, last_name, userrole, department, academic_year, year_level 
+                        FROM users WHERE deleted_at IS NULL");
+$stmt->execute();
+$result = $stmt->get_result();
 
-$chart_labels = [];
-$chart_data = [];
-$table_rows = [];
-
-if ($result_chart && $result_chart->num_rows > 0) {
-    while ($row = $result_chart->fetch_assoc()) {
-        $chart_labels[] = mb_substr($row['title'], 0, 15) . '...';
-        $chart_data[] = $row['total_reg'];
-        $table_rows[] = $row;
-    }
+$year_query = $conn->query("SELECT DISTINCT academic_year FROM users WHERE deleted_at IS NULL ORDER BY academic_year DESC");
+$academic_years = [];
+while($y = $year_query->fetch_assoc()) {
+    $academic_years[] = $y['academic_year'];
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>สถิติการเข้าร่วมกิจกรรม - SMO SCITECH</title>
+    <title>รายงาน Transcript - SMO SCITECH</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Prompt:wght@400;600&display=swap"
-        rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
     :root {
         --top-bar-bg: #A37E5E;
@@ -130,7 +124,6 @@ if ($result_chart && $result_chart->num_rows > 0) {
         display: flex;
         flex: 1;
         position: relative;
-        
     }
 
     
@@ -176,28 +169,10 @@ if ($result_chart && $result_chart->num_rows > 0) {
     
     .content-area {
         flex-grow: 1;
-        padding: 70px 40px;
+        padding: 40px;
         display: flex;
-        gap: 30px;
-        flex-wrap: wrap;
-        align-items: flex-start;
-    }
-
-    .chart-container {
-        flex: 1.2;
-        min-width: 320px;
-        text-align: center;
-    }
-
-    .table-container {
-        flex: 1;
-        min-width: 400px;
-    }
-
-    .section-title {
-        font-weight: bold;
-        margin-bottom: 30px;
-        font-size: 18px;
+        flex-direction: column;
+        
     }
 
     
@@ -245,14 +220,27 @@ if ($result_chart && $result_chart->num_rows > 0) {
         text-align: center;
         font-size: 14px;
         border: none;
+        vertical-align: middle;
     }
 
-    .custom-table tr td:first-child {
+    .custom-table tr td:first-child,
+    .custom-table tr th:first-child {
         border-radius: 5px 0 0 5px;
     }
 
-    .custom-table tr td:last-child {
+    .custom-table tr td:last-child,
+    .custom-table tr th:last-child {
         border-radius: 0 5px 5px 0;
+    }
+
+    .pdf-icon {
+        width: 35px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .pdf-icon:hover {
+        transform: scale(1.1);
     }
 
     .pagination-bar {
@@ -298,34 +286,12 @@ if ($result_chart && $result_chart->num_rows > 0) {
 
         .content-area {
             padding: 20px 10px;
-            flex-direction: column;
-        }
-
-        .chart-container,
-        .table-container {
-            min-width: 100%;
         }
 
         .logout-text {
             padding: 2px !important;
             font-size: 9px !important;
         }
-    }
-
-    .username-pill-btn {
-        background: white;
-        color: black;
-        padding: 6px 25px;
-        border-radius: 50px;
-        text-decoration: none;
-        font-weight: bold;
-        font-size: 16px;
-        transition: 0.3s;
-    }
-
-    .username-pill-btn:hover {
-        background: #eee;
-        color: black;
     }
 
     .text-page-pill-btn {
@@ -373,14 +339,13 @@ if ($result_chart && $result_chart->num_rows > 0) {
                 <img src="img/logo.png" alt="Logo" class="brand-logo">
                 <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
                     <span class="brand-name">SMO SCITECH KPRU</span>
-                    <span class="text-page-pill-btn mt-1">สถิติการเข้าร่วมกิจกรรม</span>
+                    <span class="text-page-pill-btn mt-1">รายงาน Transcript</span>
                 </div>
             </div>
             <div class="d-flex align-items-center">
                 <span class="d-none d-sm-block fw-bold me-2 login-pill-btn">
                     <?php echo htmlspecialchars($_SESSION['first_name'] ?? 'ผู้ใช้งาน'); ?>
                 </span>
-
                 <div class="logout-area">
                     <a href="user_management.php"><img
                             src="uploads/profiles/<?php echo htmlspecialchars($profile_image); ?>" alt="Profile"
@@ -392,7 +357,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
 
         <div class="main-wrapper">
             <aside class="sidebar">
-                <a href="admin_report_activity.php" class="sidebar-item mt-3 mb-3">
+                  <a href="admin_report_activity.php" class="sidebar-item mt-3 mb-3">
                     <i class="fa-solid fa-chart-line"></i>
                     <span>สถิติการเข้าร่วมกิจกรรม</span>
                 </a>
@@ -432,56 +397,72 @@ if ($result_chart && $result_chart->num_rows > 0) {
                     <span>Transcript</span>
                 </a>
                 <?php endif; ?>
+
+                <div class="px-3 mt-4">
+                    <select id="filterAcademicYear" class="form-select form-select-sm mb-2" style="font-size: 13px;">
+                        <option value="">ทุกปีการศึกษา</option>
+                        <?php foreach ($academic_years as $year): ?>
+                        <option value="<?= htmlspecialchars($year) ?>"><?= htmlspecialchars($year) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select id="filterDepartment" class="form-select form-select-sm mb-2" style="font-size: 13px;">
+                        <option value="">ทุกสาขาวิชา</option>
+                        <?php 
+                            $depts = ["วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "นวัตกรรมและธุรกิจอาหาร", "สาธารณสุขศาสตร์", "เคมี (วท.บ.)", "วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม", "ฟิสิกส์", "เคมี (ค.บ.)", "ชีววิทยา", "คณิตศาสตร์ประยุกต์"];
+                            foreach ($depts as $dept) echo "<option value='$dept'>$dept</option>";
+                        ?>
+                    </select>
+                </div>
             </aside>
 
             <main class="content-area">
-                <section class="chart-container">
-                    <div class="section-title">สถิติการเข้าร่วมกิจกรรม</div>
-                    <div style="height: 350px;">
-                        <canvas id="activityChart"></canvas>
+                <div class="search-wrap w-100">
+                    <div class="search-input-group">
+                        <i class="fa fa-search me-2" style="font-size: 12px; color: #666;"></i>
+                        <input type="text" class="search-name" placeholder="ค้นหา">
                     </div>
-                </section>
+                </div>
 
-                <section class="table-container">
-                    <div class="search-wrap">
-                        <div class="search-input-group">
-                            <i class="fa fa-search me-2" style="font-size: 12px; color: #666;"></i>
-                            <input type="text" placeholder="ค้นหา">
-                        </div>
-                    </div>
-                    <table class="custom-table">
+                <div class="table-responsive w-100">
+                    <table class="custom-table" id="memberTable">
                         <thead>
                             <tr>
-                                <th width="65%">ชื่อกิจกรรม</th>
-                                <th width="35%">จำนวนสมาชิกที่เข้าร่วม</th>
+                                <th width="40%">ชื่อ-นามสกุล</th>
+                                <th width="35%">สาขาวิชา</th>
+                                <th width="25%">Transcript</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (empty($table_rows)): ?>
+                            <?php if ($result->num_rows > 0): ?>
+                            <?php while ($row = $result->fetch_assoc()): ?>
                             <tr>
-                                <td colspan="2" class="text-center py-4 text-muted">ไม่พบข้อมูล</td>
+                                <td><?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) ?></td>
+                                <td><?= htmlspecialchars($row['department']) ?></td>
+                                <td>
+                                    <a
+                                        href="admin_detail_transcript.php?user_id=<?= $row['user_id'] ?>&action=transcript">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg"
+                                            class="pdf-icon" alt="PDF">
+                                    </a>
+                                    <span class="d-none"><?= htmlspecialchars($row['idstudent']) ?>
+                                        <?= htmlspecialchars($row['academic_year']) ?>
+                                        <?= htmlspecialchars($row['year_level']) ?></span>
+                                </td>
                             </tr>
+                            <?php endwhile; ?>
                             <?php else: ?>
-                            <?php foreach ($table_rows as $row): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                <td><?php echo number_format($row['total_reg']); ?></td>
+                                <td colspan="3" class="text-center py-4 text-muted">ไม่พบข้อมูล</td>
                             </tr>
-                            <?php endforeach; ?>
-                            <?php for ($i = count($table_rows); $i < 6; $i++): ?>
-                            <tr>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                            <?php endfor; ?>
                             <?php endif; ?>
                         </tbody>
                     </table>
-                    <div class="pagination-bar">
-                        <button class="btn-purple">กลับ</button>
-                        <button class="btn-purple">ถัดไป</button>
-                    </div>
-                </section>
+                </div>
+
+                <div class="pagination-bar w-100">
+                    <button class="btn-purple">กลับ</button>
+                    <button class="btn-purple">ถัดไป</button>
+                </div>
             </main>
         </div>
     </div>
@@ -496,7 +477,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
             $('.sidebar').toggleClass('active');
         });
 
-        // ปิด Sidebar หากคลิกพื้นที่อื่นบนหน้าจอ
+        // ปิด Sidebar หากคลิกพื้นที่อื่นบนหน้าจอ (เฉพาะในหน้าจอมือถือ)
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')
@@ -505,55 +486,32 @@ if ($result_chart && $result_chart->num_rows > 0) {
                 }
             }
         });
-    });
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('activityChart').getContext('2d');
-        const labels = <?php echo json_encode($chart_labels); ?>;
-        const dataCounts = <?php echo json_encode($chart_data); ?>;
+        // ระบบค้นหาและตัวกรอง Table (นำมาจากของเดิม)
+        function filterTable() {
+            var searchTerm = $(".search-name").val().toLowerCase();
+            var academicYear = $("#filterAcademicYear").val();
+            var department = $("#filterDepartment").val();
 
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                        label: 'จำนวนจริง',
-                        data: dataCounts,
-                        backgroundColor: '#00004d', // น้ำเงินเข้มตามรูป
-                        barPercentage: 0.6,
-                    },
-                    {
-                        label: 'เป้าหมาย',
-                        data: dataCounts.map(v => v + 5), // จำลองแท่งคู่ตามรูป
-                        backgroundColor: '#FEE799', // เหลืองทองตามรูป
-                        barPercentage: 0.6,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        ticks: {
-                            stepSize: 25
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
+            $("#memberTable tbody tr").each(function() {
+                var rowText = $(this).text().toLowerCase();
+                var rowDept = $(this).find("td:eq(1)").text().trim();
+
+                var matchSearch = rowText.indexOf(searchTerm) > -1;
+                var matchYear = (academicYear === "" || rowText.indexOf(academicYear.toLowerCase()) > -
+                    1);
+                var matchDept = (department === "" || rowDept === department);
+
+                if (matchSearch && matchYear && matchDept) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
                 }
-            }
-        });
+            });
+        }
+
+        $(".search-name").on("keyup", filterTable);
+        $("#filterAcademicYear, #filterDepartment").on("change", filterTable);
     });
     </script>
 </body>

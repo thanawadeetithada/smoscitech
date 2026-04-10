@@ -11,12 +11,24 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
 
 $current_user_role = $_SESSION['userrole'];
 
+// --- ดึงข้อมูลรูปโปรไฟล์สำหรับ Top Navbar ---
+$user_id = $_SESSION['user_id'];
+$stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
+$stmt_profile->bind_param("i", $user_id);
+$stmt_profile->execute();
+$res_profile = $stmt_profile->get_result();
+$user_data = $res_profile->fetch_assoc();
+// ถ้าไม่มีรูปให้ใช้ default.png
+$profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
+$stmt_profile->close();
+// ---------------------------------------------------------
+
 if ($current_user_role === 'academic_officer') {
-    $sql = "SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, academic_year, year_level, profile_image
+    $sql = "SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, membership_status, academic_year, year_level, profile_image
             FROM users WHERE deleted_at IS NULL";
     $stmt = $conn->prepare($sql);
 } else if ($current_user_role === 'club_president') {
-    $sql = "SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, academic_year, year_level, profile_image
+    $sql = "SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, membership_status, academic_year, year_level, profile_image
             FROM users WHERE deleted_at IS NULL AND userrole = 'club_member'";
     $stmt = $conn->prepare($sql);
 }
@@ -38,335 +50,489 @@ $role_names = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-title" content="App Premium">
-    <meta name="application-name" content="App Premium">
-    <meta name="theme-color" content="#96a1cd">
-    <title>หน้าข้อมูลผู้ใช้งาน</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <title>หน้าข้อมูลผู้ใช้งาน - SMO SCITECH</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
-    html,
-    body {
+    :root {
+        --top-bar-bg: #A37E5E;
+        --yellow-sidebar: #FEEFB3;
+        --light-bg: #FFFFFF;
+        --table-header: #D9D9D9;
+        --table-row: #EFEFEF;
+        --btn-blue: #6358E1;
+    }
+
+    body,
+    html {
         height: 100%;
         margin: 0;
-        padding: 0;
+        font-family: 'Sarabun', sans-serif;
+        background-color: var(--light-bg);
+        overflow-x: hidden;
     }
 
-    body {
-        font-family: 'Prompt', sans-serif;
-        background: url('bg/sky.png') no-repeat center center;
-        background-size: cover;
-        background-attachment: fixed;
+    .wrapper {
+        display: flex;
+        flex-direction: column;
         min-height: 100vh;
-        background: #f8f9fc;
     }
 
-    .card {
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+    
+    .top-navbar {
+        background-color: var(--top-bar-bg);
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        padding: 10px 20px;
+        justify-content: space-between;
+        color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+        position: sticky;
+        top: 0;
+    }
+
+    .brand-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .brand-logo {
+        width: 60px;
+        height: 60px;
+    }
+
+    .brand-name {
+        font-size: clamp(16px, 4vw, 24px);
+        font-family: serif;
+        letter-spacing: 1px;
+        white-space: nowrap;
+    }
+
+    .login-pill-btn {
         background: white;
-        margin-top: 50px;
-        margin: 3% 5%;
-        background-color: #ffffff;
+        color: black;
+        padding: 6px 25px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 16px;
+        transition: 0.3s;
     }
 
-    .table th,
-    .table td {
-        text-align: center;
-        vertical-align: middle;
-        font-size: 14px;
-
-    }
-
-    .table {
-        background: #f8f9fa;
-        border-radius: 10px;
-    }
-
-    .table th {
-        background-color: #f9fafc;
+    .login-pill-btn:hover {
+        background: #eee;
         color: black;
     }
 
-    .modal-dialog {
+    .text-page-pill-btn {
+        background: white;
+        color: black;
+        padding: 3px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+
+    .logout-area {
+        text-align: center;
+        margin-left: 20px;
+    }
+
+    .logout-text {
+        color: #000;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 14px;
+        background: #D9D9D9;
+        padding: 2px 10px;
+        border-radius: 5px;
+        display: block;
+    }
+
+    
+    .main-wrapper {
         display: flex;
+        flex: 1;
+        position: relative;
+    }
+
+    
+    .sidebar {
+        width: 230px;
+        background-color: var(--yellow-sidebar);
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid rgba(0, 0, 0, 0.05);
+        transition: 0.3s ease-in-out;
+        z-index: 99;
+    }
+
+    .sidebar-item {
+        background: white;
+        padding: 25px 10px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+        text-decoration: none;
+        color: #333;
+        display: block;
+        transition: all 0.3s ease;
+    }
+
+    .sidebar-item:hover {
+        background: #FDFDFD;
+        transform: translateX(5px);
+    }
+
+    .sidebar-item i {
+        font-size: 32px;
+        display: block;
+        margin-bottom: 8px;
+        color: #000;
+    }
+
+    .sidebar-item span {
+        font-weight: bold;
+        font-size: 13px;
+    }
+
+    
+    .content-area {
+        flex-grow: 1;
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    
+    .header-actions {
+        display: flex;
+        justify-content: flex-end;
         align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-
-    }
-
-    .modal-content {
-        width: 100%;
-        max-width: 500px;
-    }
-
-    .header-card {
-        display: flex;
-        justify-content: space-between;
+        margin-bottom: 20px;
         flex-wrap: wrap;
         gap: 15px;
     }
 
-    .form-control modal-text {
-        height: fit-content;
-        width: 50%;
-    }
-
-    .btn-action {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-
-    .modal-text {
-        width: 100%;
-    }
-
-    .modal-header {
-        font-weight: bold;
-    }
-
-    .nav-item a {
-        color: white;
-        margin-right: 1rem;
-    }
-
-    .navbar {
-        padding: 20px;
-    }
-
-    .nav-link:hover {
-        color: white;
-    }
-
-    .modal-body {
-        padding: 10px 40px;
-    }
-
-    .search-add {
+    .search-add-group {
         display: flex;
         gap: 15px;
         align-items: center;
     }
 
-    .tab-func {
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-    }
-
-    @media (max-width: 768px) {
-        .search-add {
-            flex-direction: row;
-            gap: 10px;
-        }
-
-        .search-name {
-            width: 20%;
-            flex: 1;
-        }
-
-        .tab-func button {
-            width: max-content;
-        }
-    }
-
-    .switch {
-        position: relative;
-        display: inline-block;
-        width: 40px;
-        height: 20px;
-    }
-
-    .switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-
-    .slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: .4s;
-        border-radius: 20px;
-    }
-
-    .slider:before {
-        position: absolute;
-        content: "";
-        height: 14px;
-        width: 14px;
-        left: 3px;
-        bottom: 3px;
-        background-color: white;
-        transition: .4s;
-        border-radius: 50%;
-    }
-
-    input:checked+.slider {
-        background-color: #28a745;
-    }
-
-    input:checked+.slider:before {
-        transform: translateX(18px);
-    }
-
     .btn-purple {
-        width: 20%;
-        background-color: #8c99bc !important;
-        color: white !important;
+        background-color: var(--btn-blue);
+        color: white;
         border: none;
+        border-radius: 20px;
+        padding: 8px 25px;
+        font-size: 14px;
+        transition: 0.3s;
     }
 
-    .bg-purple {
-        background-color: #8c99bc !important;
+    .btn-purple:hover {
+        background-color: #4a40bd;
+        color: white;
+    }
+
+    .search-input-group {
+        background: #D9D9D9;
+        border-radius: 10px;
+        padding: 8px 15px;
+        display: flex;
+        align-items: center;
+        width: 250px;
+    }
+
+    .search-input-group input {
+        border: none;
+        background: transparent;
+        font-size: 14px;
+        outline: none;
+        width: 100%;
+    }
+
+    
+    .custom-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+    }
+
+    .custom-table th {
+        background: var(--table-header);
+        padding: 12px;
+        text-align: center;
+        font-size: 14px;
+        border: none;
+        font-weight: bold;
+    }
+
+    .custom-table td {
+        background: var(--table-row);
+        padding: 12px;
+        text-align: center;
+        font-size: 14px;
+        border: none;
+        vertical-align: middle;
+    }
+
+    .custom-table tr td:first-child,
+    .custom-table tr th:first-child {
+        border-radius: 5px 0 0 5px;
+    }
+
+    .custom-table tr td:last-child,
+    .custom-table tr th:last-child {
+        border-radius: 0 5px 5px 0;
+    }
+
+    .status-badge-member {
+        border: 1px solid #34C759;
+        color: white;
+        padding: 4px 15px;
+        border-radius: 5px;
+        display: inline-block;
+        background-color: #34C759;
+        font-weight: bold;
+    }
+
+    .status-badge-no-member {
+        border: 1px solid #FF383C;
+        color: white;
+        padding: 4px 15px;
+        border-radius: 5px;
+        display: inline-block;
+        background-color: #FF383C;
+        font-weight: bold;
+    }
+
+    
+    .modal-header.bg-purple {
+        background-color: var(--btn-blue);
+    }
+
+    
+    @media (max-width: 768px) {
+        .sidebar {
+            position: absolute;
+            top: 0;
+            left: -230px;
+            height: 100%;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .top-navbar {
+            padding: 10px 15px;
+        }
+
+        .brand-name {
+            font-size: 18px;
+        }
+
+        .content-area {
+            padding: 20px 10px;
+        }
+
+        .logout-text {
+            padding: 2px !important;
+            font-size: 9px !important;
+        }
+
+        .header-actions {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .search-add-group {
+            width: 100%;
+            justify-content: space-between;
+        }
     }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-dark px-3">
-        <div class="d-flex w-100 justify-content-between align-items-center">
-            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
-                style="cursor: pointer;"></i>
-            <div class="nav-item">
-                <a class="nav-link text-white" href="logout.php">
-                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
-            </div>
-        </div>
-    </nav>
+    <div class="wrapper">
+        <nav class="top-navbar">
+            <div class="brand-section">
+                <i class="fa-solid fa-bars d-md-none me-2" id="mobileMenuBtn"
+                    style="font-size: 24px; cursor: pointer;"></i>
+                <img src="img/logo.png" alt="Logo" class="brand-logo">
+                <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
+                    <span class="brand-name">SMO SCITECH KPRU</span>
+                    <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'academic_officer'): ?>
+                    <span class="text-page-pill-btn mt-1">ข้อมูลสมาชิกสโมสร / นายกสโมสร / รองนายกสโมสร </span>
+                    <?php endif; ?>
+                    <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
+                    <span class="text-page-pill-btn mt-1">ข้อมูลสมาชิกสโมสร</span>
+                    <?php endif; ?>
 
-    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarMenu">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title">รายการ</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body">
-            <ul class="list-unstyled">
-                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li>
-                    <a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2">
-                        <i class="fa-regular fa-address-book"></i>
-                        <?php echo (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'executive') ? 'E-Portfolio' : 'E-Portfolio / Transcript'; ?>
+                </div>
+            </div>
+            <div class="d-flex align-items-center">
+                <span class="d-none d-sm-block fw-bold me-2 login-pill-btn">
+                    <?php echo htmlspecialchars($_SESSION['first_name'] ?? 'ผู้ใช้งาน'); ?>
+                </span>
+                <div class="logout-area">
+                    <a href="user_management.php">
+                        <img src="uploads/profiles/<?php echo htmlspecialchars($profile_image); ?>" alt="Profile"
+                            style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     </a>
-                </li>
+                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="main-wrapper">
+            <aside class="sidebar">
+                <a href="admin_report_activity.php" class="sidebar-item mt-3 mb-3">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>สถิติการเข้าร่วมกิจกรรม</span>
+                </a>
+                <a href="admin_e-portfolio.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>รายงาน E-portfolio</span>
+                </a>
+
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'academic_officer'): ?>
+                <a href="admin_user_management.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-users"></i>
+                    <span>ข้อมูลสมาชิกสโมสร / นายกสโมสร / รองนายกสโมสร </span>
+                </a>
+                <?php endif; ?>
+
                 <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
-                <li>
-                    <a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2">
-                        <i class="fa-regular fa-star"></i> คะแนนกิจกรรม
-                    </a>
-                </li>
+                <a href="admin_user_management.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-users"></i>
+                    <span>ข้อมูลสมาชิกสโมสร</span>
+                </a>
                 <?php endif; ?>
 
+                <a href="admin_activity.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-cubes"></i>
+                    <span>ข้อมูลกิจกรรม</span>
+                </a>
+
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
+                <a href="admin_score_activity.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>ข้อมูลการเข้าร่วมกิจกรรม</span>
+                </a>
+                <?php endif; ?>
                 <?php if (isset($_SESSION['userrole']) && in_array($_SESSION['userrole'], ['academic_officer', 'club_president'])): ?>
-                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <a href="admin_transcript.php" class="sidebar-item">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>Transcript</span>
+                </a>
                 <?php endif; ?>
-            </ul>
-        </div>
-    </div>
+            </aside>
 
-    <div class="card">
-        <div class="header-card">
-            <h3 class="text-left">ข้อมูลผู้ใช้งาน</h3>
-            <div class="search-add">
-                <div class="tab-func">
-                    <button type="button" class="btn btn-primary"
-                        onclick="window.location.href='add_user_management.php'">
-                        <i class="fa-solid fa-file-medical"></i> เพิ่มรายชื่อ
-                    </button>
+            <main class="content-area">
+                <div class="header-actions">
+                    <div class="search-add-group">
+                        <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
+                        <button type="button" class="btn btn-purple"
+                            onclick="window.location.href='add_user_management.php'">
+                            <i class="fa-solid fa-file-medical"></i> เพิ่มรายชื่อ
+                        </button>
+                        <?php endif; ?>
+
+                        <div class="search-input-group">
+                            <i class="fa fa-search me-2" style="font-size: 14px; color: #666;"></i>
+                            <input type="text" class="search-name" placeholder="ค้นหาชื่อ, รหัส, สาขา...">
+                        </div>
+                    </div>
                 </div>
-                <div class="tab-func">
-                    <input type="text" class="form-control search-name" placeholder="ค้นหา...">
+
+                <div class="table-responsive w-100">
+                    <table class="custom-table" id="memberTable">
+                        <thead>
+                            <tr>
+                                <th>ลำดับ</th>
+                                <th>ชื่อ - นามสกุล</th>
+                                <th>ชั้นปี</th>
+                                <th>สาขาวิชา</th>
+                                <th>ตำแหน่ง</th>
+                                <th>สถานะ</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+            if ($result->num_rows > 0) {
+                // กำหนดตัวแปรลำดับ
+                $ลำดับ = 1; 
+
+                while ($row = $result->fetch_assoc()) {
+                    $role_key = $row['userrole'];
+                    $display_role = isset($role_names[$role_key]) ? $role_names[$role_key] : $role_key;
+                    
+                    // นำชื่อและนามสกุลมาต่อกันโดยเว้นวรรคตรงกลาง
+                    $full_name = $row['first_name'] . " " . $row['last_name'];
+
+                    // จัดการแสดงผลสถานะสมาชิก
+                    if ($row['membership_status'] === 'member') {
+                        $status_html = "<span class='status-badge-member'>สมาชิก</span>";
+                    } else {
+                        $status_html = "<span class='status-badge-no-member'>ไม่เป็นสมาชิก</span>";
+                    }
+
+                    echo "<tr>
+                            <td>" . $ลำดับ++ . "</td>
+                            <td>" . htmlspecialchars($full_name) . "</td>
+                            <td>" . htmlspecialchars($row['year_level']) . "</td>
+                            <td>" . htmlspecialchars($row['department']) . "</td>
+                            <td>" . htmlspecialchars($display_role) . "</td>
+                            <td>" . $status_html . "</td>
+                            <td>
+                                <a href='edit_user.php?user_id={$row['user_id']}' class='btn btn-warning btn-sm shadow-sm' title='แก้ไข'>
+                                    <i class='fa-solid fa-pencil'></i>
+                                </a>
+                                &nbsp;
+                                <a href='#' class='btn btn-danger btn-sm delete-btn shadow-sm' data-id='{$row['user_id']}' title='ลบ'>
+                                    <i class='fa-regular fa-trash-can'></i>
+                                </a>
+                            </td>
+                          </tr>";
+                }
+            }
+            $conn->close();
+            ?>
+                        </tbody>
+                        <tr id="noResult" style="display:none;">
+                            <td colspan="7" class="text-center text-muted fw-bold py-4"
+                                style="background-color: transparent;">
+                                <i class="fa-solid fa-circle-info fs-4 d-block mb-2"></i> ไม่พบข้อมูลที่ค้นหา
+                            </td>
+                        </tr>
+                    </table>
                 </div>
-            </div>
-        </div>
-        <br>
-        <div class="table-responsive">
-            <table class="table table-bordered" id="memberTable">
-                <thead>
-                    <tr>
-                        <th>รหัสนักศึกษา</th>
-                        <th>ชื่อ</th>
-                        <th>นามสกุล</th>
-                        <th>Email</th>
-                        <th>สาขาวิชา</th>
-                        <th>ชั้นปีการศึกษา</th>
-                        <th>ปีการศึกษา</th>
-                        <th>สถานะ</th>
-                        <th>รูปโปรไฟล์</th>
-                        <th>จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-    if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $role_key = $row['userrole'];
-            $display_name = isset($role_names[$role_key]) ? $role_names[$role_key] : $role_key;
-
-            echo "<tr>
-                    <td>{$row['idstudent']}</td>
-                    <td>{$row['first_name']}</td>
-                    <td>{$row['last_name']}</td>
-                    <td>{$row['email']}</td>
-                    <td>{$row['department']}</td>
-                    <td>{$row['year_level']}</td>
-                    <td>{$row['academic_year']}</td>
-                    <td>{$display_name}</td> 
-                    <td><img src='uploads/{$row['profile_image']}' width='50' height='50' class='rounded-circle'></td>
-                    <td class='btn-action1'>";
-
-            echo "<a href='edit_user.php?user_id={$row['user_id']}' class='btn btn-warning btn-sm'>
-                        <i class='fa-solid fa-pencil'></i>
-                    </a>
-                    &nbsp;&nbsp;
-                    <a href='#' class='btn btn-danger btn-sm delete-btn' data-id='{$row['user_id']}'>
-                        <i class='fa-regular fa-trash-can'></i>
-                    </a>";
-
-            echo "  </td>
-                </tr>";
-        }
-    }
-    $conn->close();
-    ?>
-                </tbody>
-                <tr id="noResult" style="display:none;">
-                    <td colspan="10" class="text-center text-muted fw-bold bg-light py-3">
-                        <i class="fa-solid fa-circle-info"></i> ไม่พบข้อมูลที่ค้นหา
-                    </td>
-                </tr>
-            </table>
+            </main>
         </div>
     </div>
 
     <div class="modal fade" id="alertModal" tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content text-center">
+            <div class="modal-content text-center border-0 shadow">
                 <div class="modal-header bg-purple text-white">
                     <h5 class="modal-title" id="alertModalLabel">แจ้งเตือน</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body pt-4 pb-4" id="alertMessage">
+                <div class="modal-body pt-4 pb-4" id="alertMessage" style="font-size: 16px;">
                 </div>
-                <div class="modal-footer justify-content-center">
+                <div class="modal-footer justify-content-center border-0">
                     <button type="button" class="btn btn-purple px-4" data-bs-dismiss="modal">ปิด</button>
                 </div>
             </div>
@@ -376,31 +542,49 @@ $role_names = [
     <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content text-center">
+            <div class="modal-content text-center border-0 shadow">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="confirmDeleteLabel">ยืนยันการลบ</h5>
+                    <h5 class="modal-title" id="confirmDeleteLabel"><i class="fa-solid fa-triangle-exclamation"></i>
+                        ยืนยันการลบ</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body pt-4 pb-3">
-                    <p>คุณต้องการลบรายชื่อนี้หรือไม่?</p>
+                <div class="modal-body pt-4 pb-3" style="font-size: 16px;">
+                    <p>คุณต้องการลบรายชื่อผู้ใช้งานนี้หรือไม่?</p>
                 </div>
-                <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">ลบ</button>
+                <div class="modal-footer justify-content-center border-0">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">ลบข้อมูล</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
+        // Toggle Sidebar สำหรับมือถือ
+        $('#mobileMenuBtn').on('click', function(e) {
+            e.stopPropagation();
+            $('.sidebar').toggleClass('active');
+        });
+
+        // ปิด Sidebar หากคลิกพื้นที่อื่นบนหน้าจอ (เฉพาะในหน้าจอมือถือ)
+        $(document).on('click', function(e) {
+            if ($(window).width() <= 768) {
+                if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')
+                    .length) {
+                    $('.sidebar').removeClass('active');
+                }
+            }
+        });
+
+        // ระบบค้นหา Table
         $(".search-name").on("keyup", function() {
             var value = $(this).val().toLowerCase();
             var visibleRows = 0;
             $("#memberTable tbody tr").each(function() {
-                if ($(this).attr("id") === "noResult" || $(this).find(".modal-dialog").length >
-                    0) return;
+                if ($(this).attr("id") === "noResult") return;
 
                 var match = $(this).text().toLowerCase().indexOf(value) > -1;
                 $(this).toggle(match);
@@ -414,6 +598,7 @@ $role_names = [
             }
         });
 
+        // ระบบลบข้อมูล AJAX
         let deleteUserId = null;
 
         $(".delete-btn").click(function(e) {
@@ -433,13 +618,15 @@ $role_names = [
                     success: function(response) {
                         $("#confirmDeleteModal").modal("hide");
                         $("a.delete-btn[data-id='" + deleteUserId + "']").closest("tr")
-                            .remove();
+                            .fadeOut(300, function() {
+                                $(this).remove();
+                                if ($("#memberTable tbody tr:visible").length === 0) {
+                                    $("#noResult").show();
+                                }
+                            });
                         $("#alertMessage").text(response);
                         $("#alertModal").modal("show");
                         deleteUserId = null;
-                        if ($("#memberTable tbody tr").length === 0) {
-                            $("#noResult").show();
-                        }
                     },
                     error: function() {
                         alert("เกิดข้อผิดพลาดในการลบข้อมูล");
@@ -449,7 +636,6 @@ $role_names = [
         });
     });
     </script>
-
 </body>
 
 </html>

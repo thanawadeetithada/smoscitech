@@ -15,6 +15,7 @@ if (!isset($_GET['user_id'])) {
 
 $user_id = $_GET['user_id'];
 
+// ดึงข้อมูลเป้าหมายที่ต้องการแก้ไข
 $sql = "SELECT * FROM users WHERE user_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $user_id);
@@ -26,6 +27,16 @@ if ($result->num_rows == 0) {
 }
 
 $row = $result->fetch_assoc();
+
+// ดึงข้อมูลรูปโปรไฟล์ของแอดมินที่ล็อกอินอยู่ (สำหรับ Navbar)
+$logged_in_user_id = $_SESSION['user_id'];
+$stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
+$stmt_profile->bind_param("i", $logged_in_user_id);
+$stmt_profile->execute();
+$res_profile = $stmt_profile->get_result();
+$user_data = $res_profile->fetch_assoc();
+$admin_profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
+$stmt_profile->close();
 ?>
 
 <!DOCTYPE html>
@@ -34,366 +45,670 @@ $row = $result->fetch_assoc();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-title" content="App Premium">
-    <meta name="application-name" content="App Premium">
-    <meta name="theme-color" content="#96a1cd">
-    <title>แก้ไขข้อมูลผู้ใช้งาน</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <meta name="apple-mobile-web-app-title" content="SMO SCITECH KPRU">
+    <meta name="application-name" content="SMO SCITECH KPRU">
+    <meta name="theme-color" content="#A37E5E">
+    <title>แก้ไขข้อมูลผู้ใช้งาน - SMO SCITECH</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Prompt:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
     <style>
-    body {
-        font-family: 'Prompt', sans-serif;
-        height: auto;
-        background: url('bg/sky.png') no-repeat center center/cover;
+    :root {
+        --top-bar-bg: #A37E5E;
+        --yellow-sidebar: #FEEFB3;
+        --light-bg: #F4F7FA;
+        --btn-blue: #6358E1;
+        --btn-blue-hover: #4e44b8;
+    }
+
+    body,
+    html {
+        height: 100%;
         margin: 0;
-        background: #cfd8e5;
+        font-family: 'Sarabun', sans-serif;
+        background-color: var(--light-bg);
+        overflow-x: hidden;
     }
 
-    .nav-item a {
-        color: white;
-        margin-right: 1rem;
-    }
-
-    .navbar {
-        padding: 20px;
-    }
-
-    .nav-link:hover {
-        color: white;
-    }
-
-    .container {
-        background: rgba(255, 255, 255, 0.9);
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 600px;
-        margin: 20px;
-    }
-
-    h2 {
-        margin-bottom: 20px;
-        color: black;
-        text-align: center;
-        margin-top: 20px;
-    }
-
-    form {
+    .wrapper {
         display: flex;
         flex-direction: column;
-        width: 100%;
+        min-height: 100vh;
     }
 
-    label {
-        text-align: left;
-        font-weight: bold;
-        margin-top: 10px;
-    }
-
-
-    button {
-        width: 48%;
-        padding: 12px;
-        font-size: 18px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-
-    .submit-btn {
-        background: #8c99bc;
+    
+    .top-navbar {
+        background-color: var(--top-bar-bg);
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        padding: 10px 20px;
+        justify-content: space-between;
         color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+        position: sticky;
+        top: 0;
     }
 
-    .cancel-btn {
-        background: #ccc;
+    .brand-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .brand-logo {
+        width: 60px;
+        height: 60px;
+    }
+
+    .brand-name {
+        font-size: clamp(16px, 4vw, 24px);
+        font-family: serif;
+        letter-spacing: 1px;
+        white-space: nowrap;
+    }
+
+    .login-pill-btn {
+        background: white;
         color: black;
-        margin-left: 5px;
+        padding: 6px 25px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 16px;
+        transition: 0.3s;
     }
 
-    .form-control {
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        font-size: 16px;
+    .login-pill-btn:hover {
+        background: #eee;
+        color: black;
+    }
+
+    .text-page-pill-btn {
+        background: white;
+        color: black;
+        padding: 3px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+
+    .logout-area {
+        text-align: center;
+        margin-left: 20px;
+    }
+
+    .logout-text {
+        color: #000;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 14px;
+        background: #D9D9D9;
+        padding: 2px 10px;
+        border-radius: 5px;
+        display: block;
+    }
+
+    
+    .main-wrapper {
+        display: flex;
+        flex: 1;
+        position: relative;
+    }
+
+    
+    .sidebar {
+        width: 230px;
+        background-color: var(--yellow-sidebar);
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid rgba(0, 0, 0, 0.05);
+        transition: 0.3s ease-in-out;
+        z-index: 99;
+    }
+
+    .sidebar-item {
+        background: white;
+        padding: 25px 10px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+        text-decoration: none;
+        color: #333;
+        display: block;
+        transition: all 0.3s ease;
+    }
+
+    .sidebar-item:hover {
+        background: #FDFDFD;
+        transform: translateX(5px);
+    }
+
+    .sidebar-item i {
+        font-size: 32px;
+        display: block;
+        margin-bottom: 8px;
+        color: #000;
+    }
+
+    .sidebar-item span {
+        font-weight: bold;
+        font-size: 13px;
+    }
+
+    
+    .content-area {
+        flex-grow: 1;
+        padding: 40px 20px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+    .form-card {
+        background: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        width: 100%;
+        max-width: 800px;
+        padding: 40px;
+        border: none;
+        font-family: 'Prompt', sans-serif;
+    }
+
+    .form-title {
+        color: var(--top-bar-bg);
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 30px;
+        position: relative;
+        font-size: 24px;
+    }
+
+    .form-title::after {
+        content: '';
+        width: 60px;
+        height: 4px;
+        background-color: var(--yellow-sidebar);
+        display: block;
+        margin: 10px auto 0;
+        border-radius: 2px;
     }
 
     .form-label {
-        margin-top: 10px;
-        margin-bottom: 0;
+        font-weight: 500;
+        color: #4a5568;
     }
 
-    .container-wrapper {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: calc(100vh - 56px);
+    .form-control,
+    .form-select {
+        border-radius: 8px;
+        padding: 12px 15px;
+        border: 1px solid #cbd5e1;
+        font-size: 15px;
+        transition: border-color 0.3s, box-shadow 0.3s;
     }
 
-    .bg-purple {
-        background-color: #8c99bc !important;
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--top-bar-bg);
+        box-shadow: 0 0 0 0.25rem rgba(163, 126, 94, 0.25);
     }
 
-    .btn-group-responsive {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 15px;
-        flex-wrap: nowrap;
+    .profile-preview-wrapper {
+        text-align: center;
+        margin-top: 15px;
     }
 
-    .btn-group-responsive .btn {
-        flex: 1 1 200px;
-        max-width: 200px;
+    .profile-preview {
+        width: 140px;
+        height: 140px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 4px solid #fff;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        display: inline-block;
     }
 
-    @media (max-width: 576px) {
-        .btn-group-responsive .btn {
-            width: 100%;
-            max-width: none;
-        }
-    }
-
-    .btn-purple {
-        width: 20%;
-        background-color: #8c99bc !important;
-        color: white !important;
+    .btn-submit {
+        background-color: var(--btn-blue);
+        color: white;
+        font-weight: 500;
+        padding: 12px 30px;
+        border-radius: 8px;
         border: none;
+        transition: all 0.3s;
+        min-width: 150px;
     }
 
-    .btn-purple:hover {
-        background-color: #9FA8DA !important;
+    .btn-submit:hover {
+        background-color: var(--btn-blue-hover);
+        color: white;
+        transform: translateY(-2px);
     }
 
     .btn-cancel {
-        width: 20%;
-        background-color: #c7c5c5 !important;
-        color: black !important;
+        background-color: #e2e8f0;
+        color: #4a5568;
+        font-weight: 500;
+        padding: 12px 30px;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.3s;
+        min-width: 150px;
     }
 
     .btn-cancel:hover {
-        background-color: #E8E8E8 !important;
+        background-color: #cbd5e1;
+        transform: translateY(-2px);
+    }
+
+    .btn-group-custom {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 30px;
+    }
+
+    
+    .membership-status-container {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    .status-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 5px;
+    }
+
+    .status-options-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .status-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        cursor: pointer;
+    }
+
+    .status-circle {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+    }
+
+    .circle-red {
+        background-color: #FF3B30;
+    }
+
+    .circle-green {
+        background-color: #34C759;
+    }
+
+    .status-label-box {
+        font-size: 16px;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 5px 25px;
+        min-width: 150px;
+        text-align: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .status-radio-input {
+        display: none;
+    }
+
+    
+    .status-radio-input:checked+.status-item .status-label-box {
+        border-color: var(--top-bar-bg);
+        background-color: #fcfcfc;
+        font-weight: bold;
+    }
+
+    
+    @media (max-width: 768px) {
+        .sidebar {
+            position: absolute;
+            top: 0;
+            left: -230px;
+            height: 100%;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .top-navbar {
+            padding: 10px 15px;
+        }
+
+        .brand-name {
+            font-size: 18px;
+        }
+
+        .content-area {
+            padding: 20px 10px;
+        }
+
+        .form-card {
+            padding: 25px 20px;
+        }
+
+        .logout-text {
+            padding: 2px !important;
+            font-size: 9px !important;
+        }
+
+        .btn-group-custom {
+            flex-direction: column;
+        }
+
+        .btn-group-custom .btn {
+            width: 100%;
+        }
     }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-dark px-3">
-        <div class="d-flex w-100 justify-content-between align-items-center">
-            <i class="fa-solid fa-bars text-white" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu"
-                style="cursor: pointer;"></i>
-            <div class="nav-item">
-                <a class="nav-link text-white" href="logout.php">
-                    <i class="fa-solid fa-user"></i>&nbsp;&nbsp;Logout</a>
+    <div class="wrapper">
+        <nav class="top-navbar">
+            <div class="brand-section">
+                <i class="fa-solid fa-bars d-md-none me-2" id="mobileMenuBtn"
+                    style="font-size: 24px; cursor: pointer;"></i>
+                <img src="img/logo.png" alt="Logo" class="brand-logo">
+                <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
+                    <span class="brand-name">SMO SCITECH KPRU</span>
+                    <span class="text-page-pill-btn mt-1">แก้ไขข้อมูลผู้ใช้งาน</span>
+                </div>
             </div>
-        </div>
-    </nav>
+            <div class="d-flex align-items-center">
+                <span class="d-none d-sm-block fw-bold me-2 login-pill-btn">
+                    <?php echo htmlspecialchars($_SESSION['first_name'] ?? 'ผู้ใช้งาน'); ?>
+                </span>
 
-    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarMenu">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title">รายการ</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body">
-            <ul class="list-unstyled">
-                <li><a href="admin_report_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-chart-line"></i> สถิติการเข้าร่วมกิจกรรม</a></li>
-                <li><a href="admin_activity.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-list-check"></i> กิจกรรม</a></li>
-                <li>
-                    <a href="admin_e-portfolio_transcript.php" class="text-white text-decoration-none d-block py-2">
-                        <i class="fa-regular fa-address-book"></i>
-                        <?php echo (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'executive') ? 'E-Portfolio' : 'E-Portfolio / Transcript'; ?>
+                <div class="logout-area">
+                    <a href="user_management.php">
+                        <img src="uploads/profiles/<?php echo htmlspecialchars($admin_profile_image); ?>" alt="Profile"
+                            style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     </a>
-                </li>
+                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="main-wrapper">
+            <aside class="sidebar">
+                <a href="admin_report_activity.php" class="sidebar-item mt-3 mb-3">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>สถิติการเข้าร่วมกิจกรรม</span>
+                </a>
+                <a href="admin_e-portfolio.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>รายงาน E-portfolio</span>
+                </a>
+
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'academic_officer'): ?>
+                <a href="admin_user_management.php" class="sidebar-item mb-3"
+                    style="background: #FDFDFD; border-left: 5px solid var(--top-bar-bg);">
+                    <i class="fa-solid fa-users"></i>
+                    <span>ข้อมูลสมาชิกสโมสร / นายกสโมสร / รองนายกสโมสร </span>
+                </a>
+                <?php endif; ?>
+
                 <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
-                <li>
-                    <a href="admin_score_activity.php" class="text-white text-decoration-none d-block py-2">
-                        <i class="fa-regular fa-star"></i> คะแนนกิจกรรม
-                    </a>
-                </li>
+                <a href="admin_user_management.php" class="sidebar-item mb-3"
+                    style="background: #FDFDFD; border-left: 5px solid var(--top-bar-bg);">
+                    <i class="fa-solid fa-users"></i>
+                    <span>ข้อมูลสมาชิกสโมสร</span>
+                </a>
+                <?php endif; ?>
+
+                <a href="admin_activity.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-cubes"></i>
+                    <span>ข้อมูลกิจกรรม</span>
+                </a>
+
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
+                <a href="admin_score_activity.php" class="sidebar-item mb-3">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>ข้อมูลการเข้าร่วมกิจกรรม</span>
+                </a>
                 <?php endif; ?>
 
                 <?php if (isset($_SESSION['userrole']) && in_array($_SESSION['userrole'], ['academic_officer', 'club_president'])): ?>
-                <li><a href="admin_user_management.php" class="text-white text-decoration-none d-block py-2"><i
-                            class="fa-solid fa-user-tie"></i> ข้อมูลผู้ใช้งาน</a></li>
+                <a href="admin_transcript.php" class="sidebar-item">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>Transcript</span>
+                </a>
                 <?php endif; ?>
-            </ul>
-        </div>
-    </div>
-    <div class="container-wrapper">
-        <div class="container">
-            <h2>แก้ไขข้อมูลผู้ใช้งาน</h2>
-            <form action="update_user.php" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="user_id" value="<?= $row['user_id'] ?>">
+            </aside>
 
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label for="first_name" class="form-label">ชื่อ</label>
-                        <input class="form-control" type="text" id="first_name" name="first_name"
-                            value="<?= $row['first_name'] ?>" required>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label for="last_name" class="form-label">นามสกุล</label>
-                        <input class="form-control" type="text" id="last_name" name="last_name"
-                            value="<?= $row['last_name'] ?>" required>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label for="idstudent" class="form-label">รหัสนักศึกษา</label>
-                        <input class="form-control" type="text" id="idstudent" name="idstudent"
-                            value="<?= $row['idstudent'] ?>" required>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label for="email" class="form-label">E-mail</label>
-                        <input class="form-control" type="email" id="email" name="email" value="<?= $row['email'] ?>"
-                            required>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label for="academic_year" class="form-label">ปีการศึกษา</label>
-                        <input class="form-control" type="text" id="academic_year" name="academic_year"
-                            value="<?= $row['academic_year'] ?>" required>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label for="year_level" class="form-label">ชั้นปี</label>
-                        <select class="form-control" id="year_level" name="year_level" required>
-                            <option value="" disabled <?= empty($row['year_level']) ? 'selected' : ''; ?>>-- เลือกชั้นปี
-                                --</option>
-                            <?php
-            $year_levels = ["ชั้นปีที่ 1", "ชั้นปีที่ 2", "ชั้นปีที่ 3", "ชั้นปีที่ 4", "อื่นๆ"];
-            foreach ($year_levels as $yl) {
-                $selected = ($row['year_level'] == $yl) ? 'selected' : '';
-                echo "<option value=\"$yl\" $selected>$yl</option>";
-            }
-            ?>
-                        </select>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label for="department" class="form-label">สาขาวิชา</label>
-                        <select class="form-control" id="department" name="department" required>
-                            <option value="วิทยาการคอมพิวเตอร์"
-                                <?= ($row['department'] == 'วิทยาการคอมพิวเตอร์') ? 'selected' : ''; ?>>
-                                วิทยาการคอมพิวเตอร์</option>
-                            <option value="เทคโนโลยีสารสนเทศ"
-                                <?= ($row['department'] == 'เทคโนโลยีสารสนเทศ') ? 'selected' : ''; ?>>เทคโนโลยีสารสนเทศ
-                            </option>
-                            <option value="นวัตกรรมและธุรกิจอาหาร"
-                                <?= ($row['department'] == 'นวัตกรรมและธุรกิจอาหาร') ? 'selected' : ''; ?>>
-                                นวัตกรรมและธุรกิจอาหาร</option>
-                            <option value="สาธารณสุขศาสตร์"
-                                <?= ($row['department'] == 'สาธารณสุขศาสตร์') ? 'selected' : ''; ?>>สาธารณสุขศาสตร์
-                            </option>
-                            <option value="เคมี (วท.บ.)"
-                                <?= ($row['department'] == 'เคมี (วท.บ.)') ? 'selected' : ''; ?>>เคมี (วท.บ.)
-                            </option>
-                            <option value="วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม"
-                                <?= ($row['department'] == 'วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม') ? 'selected' : ''; ?>>
-                                วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม</option>
-                            <option value="ฟิสิกส์" <?= ($row['department'] == 'ฟิสิกส์') ? 'selected' : ''; ?>>
-                                ฟิสิกส์</option>
-                            <option value="เคมี (ค.บ.)" <?= ($row['department'] == 'เคมี (ค.บ.)') ? 'selected' : ''; ?>>
-                                เคมี (ค.บ.)</option>
-                            <option value="ชีววิทยา" <?= ($row['department'] == 'ชีววิทยา') ? 'selected' : ''; ?>>
-                                ชีววิทยา</option>
-                            <option value="คณิตศาสตร์ประยุกต์"
-                                <?= ($row['department'] == 'คณิตศาสตร์ประยุกต์') ? 'selected' : ''; ?>>
-                                คณิตศาสตร์ประยุกต์</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label for="userrole" class="form-label">สถานะ</label>
-                        <select class="form-control" id="userrole" name="userrole" required>
-                            <option value="">-- เลือกประเภท --</option>
-                            <option value="executive" <?= ($row['userrole'] == 'executive') ? 'selected' : ''; ?>>
-                                ผู้บริหาร</option>
-                            <option value="academic_officer"
-                                <?= ($row['userrole'] == 'academic_officer') ? 'selected' : ''; ?>>นักวิชาการศึกษา
-                            </option>
-                            <option value="club_president"
-                                <?= ($row['userrole'] == 'club_president') ? 'selected' : ''; ?>>
-                                นายกสโมสรนักศึกษาและรองนายกสโมสรนักศึกษา</option>
-                            <option value="club_member" <?= ($row['userrole'] == 'club_member') ? 'selected' : ''; ?>>
-                                สมาชิกสโมสรนักศึกษาคณะวิทยาศาสตร์และเทคโนโลยี</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label for="profile_image" class="form-label">รูปโปรไฟล์</label>
-                        <input type="file" id="profile_image" name="profile_image" class="form-control" accept="image/*"
-                            onchange="previewImage(event)">
-                        <br>
-                        <div class="mb-2 text-center">
-                            <?php 
-                    $image_src = "bg/default-profile.png";
-                    if (!empty($row['profile_image']) && file_exists("uploads/" . $row['profile_image'])) {
-                        $image_src = "uploads/" . $row['profile_image'];
-                    }
-                ?>
-                            <img id="preview" src="<?= $image_src ?>" alt="Preview"
-                                style="width: 150px; height: 150px; object-fit: cover; border-radius: 50%; border: 2px solid #ddd; display: inline-block;">
+            <main class="content-area">
+                <div class="form-card">
+                    <h2 class="form-title">แก้ไขข้อมูลผู้ใช้งาน</h2>
+
+                    <form action="update_user.php" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="user_id" value="<?= htmlspecialchars($row['user_id']) ?>">
+
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="first_name" class="form-label">ชื่อ</label>
+                                <input class="form-control" type="text" id="first_name" name="first_name"
+                                    value="<?= htmlspecialchars($row['first_name']) ?>" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="last_name" class="form-label">นามสกุล</label>
+                                <input class="form-control" type="text" id="last_name" name="last_name"
+                                    value="<?= htmlspecialchars($row['last_name']) ?>" required>
+                            </div>
                         </div>
-                    </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="idstudent" class="form-label">รหัสนักศึกษา</label>
+                                <input class="form-control" type="text" id="idstudent" name="idstudent"
+                                    value="<?= htmlspecialchars($row['idstudent']) ?>" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">เบอร์โทรศัพท์</label>
+                                <input class="form-control" type="tel" id="phone" name="phone"
+                                    value="<?= htmlspecialchars($row['phone'] ?? '') ?>">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="email" class="form-label">E-mail</label>
+                                <input class="form-control" type="email" id="email" name="email"
+                                    value="<?= htmlspecialchars($row['email']) ?>" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="academic_year" class="form-label">ปีการศึกษา</label>
+                                <input class="form-control" type="text" id="academic_year" name="academic_year"
+                                    value="<?= htmlspecialchars($row['academic_year']) ?>" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="year_level" class="form-label">ชั้นปี</label>
+                                <select class="form-select" id="year_level" name="year_level" required>
+                                    <option value="" disabled <?= empty($row['year_level']) ? 'selected' : ''; ?>>--
+                                        เลือกชั้นปี --</option>
+                                    <?php
+                                    $year_levels = ["ชั้นปีที่ 1", "ชั้นปีที่ 2", "ชั้นปีที่ 3", "ชั้นปีที่ 4", "อื่นๆ"];
+                                    foreach ($year_levels as $yl) {
+                                        $selected = ($row['year_level'] == $yl) ? 'selected' : '';
+                                        echo "<option value=\"$yl\" $selected>$yl</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="department" class="form-label">สาขาวิชา</label>
+                                <select class="form-select" id="department" name="department" required>
+                                    <?php
+                                    $departments = [
+                                        "วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "นวัตกรรมและธุรกิจอาหาร",
+                                        "สาธารณสุขศาสตร์", "เคมี (วท.บ.)", "วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม",
+                                        "ฟิสิกส์", "เคมี (ค.บ.)", "ชีววิทยา", "คณิตศาสตร์ประยุกต์"
+                                    ];
+                                    foreach ($departments as $dept) {
+                                        $selected = ($row['department'] == $dept) ? 'selected' : '';
+                                        echo "<option value=\"$dept\" $selected>$dept</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="userrole" class="form-label">ตำแหน่ง</label>
+                                <select class="form-select" id="userrole" name="userrole" required>
+                                    <option value="">-- เลือกประเภท --</option>
+                                    <option value="executive"
+                                        <?= ($row['userrole'] == 'executive') ? 'selected' : ''; ?>>ผู้บริหาร</option>
+                                    <option value="academic_officer"
+                                        <?= ($row['userrole'] == 'academic_officer') ? 'selected' : ''; ?>>
+                                        นักวิชาการศึกษา</option>
+                                    <option value="club_president"
+                                        <?= ($row['userrole'] == 'club_president') ? 'selected' : ''; ?>>
+                                        นายกสโมสรนักศึกษาและรองนายกสโมสรนักศึกษา</option>
+                                    <option value="club_member"
+                                        <?= ($row['userrole'] == 'club_member') ? 'selected' : ''; ?>>
+                                        สมาชิกสโมสรนักศึกษาคณะวิทยาศาสตร์และเทคโนโลยี</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="membership-status-container">
+                            <label for="first_name" class="form-label">สถานะ</label>
+                            <div class="status-options-wrapper">
+                                <label>
+                                    <input type="radio" name="membership_status" value="no_member"
+                                        class="status-radio-input"
+                                        <?= ($row['membership_status'] == 'no_member') ? 'checked' : ''; ?>>
+                                    <div class="status-item">
+                                        <div class="status-circle circle-red"></div>
+                                        <div class="status-label-box">ไม่อนุมัติ</div>
+                                    </div>
+                                </label>
+
+                                <label>
+                                    <input type="radio" name="membership_status" value="member"
+                                        class="status-radio-input"
+                                        <?= ($row['membership_status'] == 'member') ? 'checked' : ''; ?>>
+                                    <div class="status-item">
+                                        <div class="status-circle circle-green"></div>
+                                        <div class="status-label-box">อนุมัติ</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <label for="profile_image" class="form-label">รูปโปรไฟล์</label>
+                                <input type="file" id="profile_image" name="profile_image" class="form-control"
+                                    accept="image/*" onchange="previewImage(event)">
+
+                                <div class="profile-preview-wrapper">
+                                    <?php 
+                                    // -------------------------------------------------------------
+                                    // แก้ไขพาธรูปภาพมาดึงที่ uploads/profiles/ ทั้งหมด
+                                    // -------------------------------------------------------------
+                                    $image_src = "uploads/profiles/default.png";
+                                    if (!empty($row['profile_image']) && $row['profile_image'] !== 'default.png' && file_exists("uploads/profiles/" . $row['profile_image'])) {
+                                        $image_src = "uploads/profiles/" . htmlspecialchars($row['profile_image']);
+                                    }
+                                    ?>
+                                    <img id="preview" src="<?= $image_src ?>" alt="Profile Preview"
+                                        class="profile-preview">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="btn-group-custom">
+                            <button type="submit" class="btn btn-submit">
+                                <i class="fa-solid fa-floppy-disk me-1"></i> บันทึกข้อมูล
+                            </button>
+                            <button type="button" onclick="window.location.href='admin_user_management.php'"
+                                class="btn btn-cancel">
+                                <i class="fa-solid fa-xmark me-1"></i> ยกเลิก
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <br>
-                <div class="d-flex text-center btn-group-responsive mt-4">
-                    <button type="submit" class="btn btn-purple">บันทึก</button>
-                    <button type="button" onclick="window.location.href='admin_user_management.php'"
-                        class="btn btn-cancel">ยกเลิก</button>
-                </div>
-            </form>
+            </main>
         </div>
     </div>
 
     <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content text-center">
-                <div class="modal-header bg-purple text-white">
-                    <h5 class="modal-title" id="statusModalLabel">อัปเดต</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-content border-0 shadow" style="font-family: 'Prompt', sans-serif;">
+                <div class="modal-header text-white" style="background-color: var(--top-bar-bg);">
+                    <h5 class="modal-title fw-bold" id="statusModalLabel">แจ้งเตือนระบบ</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body text-center" id="statusMessage">
+                <div class="modal-body text-center py-4" id="statusMessage">
                 </div>
-                <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-purple" id="closeModalBtn" data-bs-dismiss="modal">ปิด</button>
+                <div class="modal-footer justify-content-center border-0 pb-4">
+                    <button type="button" class="btn text-white px-4" id="closeModalBtn" data-bs-dismiss="modal"
+                        style="background-color: var(--top-bar-bg); border-radius: 8px;">ตกลง</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
+        // Mobile Sidebar Toggle
+        $('#mobileMenuBtn').on('click', function(e) {
+            e.stopPropagation();
+            $('.sidebar').toggleClass('active');
+        });
+
+        // Close Sidebar when clicking outside
+        $(document).on('click', function(e) {
+            if ($(window).width() <= 768) {
+                if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')
+                    .length) {
+                    $('.sidebar').removeClass('active');
+                }
+            }
+        });
+
+        // Status Modal Handling
         const urlParams = new URLSearchParams(window.location.search);
         const status = urlParams.get('status');
 
         if (status === 'success') {
             $("#statusMessage").html(
-                "<i class='fa-solid fa-circle-check text-success fa-2x mb-2'></i><br>อัปเดตข้อมูลเรียบร้อยแล้ว"
+                "<i class='fa-solid fa-circle-check text-success fa-3x mb-3'></i><h4 class='text-success fw-bold'>สำเร็จ</h4><p class='text-muted mb-0'>อัปเดตข้อมูลผู้ใช้งานเรียบร้อยแล้ว</p>"
             );
             $("#statusModal").modal("show");
         } else if (status === 'error') {
             $("#statusMessage").html(
-                "<i class='fa-solid fa-triangle-exclamation text-danger fa-2x mb-2'></i><br>เกิดข้อผิดพลาดในการอัปเดตข้อมูล"
+                "<i class='fa-solid fa-triangle-exclamation text-danger fa-3x mb-3'></i><h4 class='text-danger fw-bold'>ผิดพลาด</h4><p class='text-muted mb-0'>เกิดข้อผิดพลาดในการอัปเดตข้อมูล</p>"
             );
             $("#statusModal").modal("show");
         }
@@ -401,8 +716,15 @@ $row = $result->fetch_assoc();
         $("#closeModalBtn").on("click", function() {
             window.location.href = "admin_user_management.php";
         });
+
+        $('#statusModal').on('hidden.bs.modal', function() {
+            if (status === 'success' || status === 'error') {
+                window.location.href = "admin_user_management.php";
+            }
+        });
     });
 
+    // Image Preview Function
     function previewImage(event) {
         const reader = new FileReader();
         const imageField = document.getElementById("preview");
@@ -410,7 +732,6 @@ $row = $result->fetch_assoc();
         reader.onload = function() {
             if (reader.readyState === 2) {
                 imageField.src = reader.result;
-                imageField.style.display = "inline-block";
             }
         }
 
