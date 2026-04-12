@@ -2,7 +2,6 @@
 session_start();
 include 'db.php';
 
-// ตรวจสอบการ Login
 if (!isset($_SESSION['user_id'])) {
     header("Location: index.php");
     exit();
@@ -11,7 +10,6 @@ if (!isset($_SESSION['user_id'])) {
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_id = $_SESSION['user_id'];
     
-    // --- 1. รับค่าข้อมูลส่วนตัว (users table) ---
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name = trim($_POST['last_name'] ?? '');
     $department = trim($_POST['department'] ?? '');
@@ -19,7 +17,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $phone = trim($_POST['phone'] ?? '');
     $about_me = trim($_POST['about_me'] ?? '');
 
-    // อัปเดตข้อมูลลงตาราง users (ลบฟิลด์ภาษาออกจากตรงนี้แล้ว)
     $sql = "UPDATE users SET 
             first_name=?, last_name=?, department=?, email=?, phone=?, about_me=?
             WHERE user_id=?";
@@ -32,7 +29,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->execute();
     $stmt->close();
 
-    // --- 2. จัดการรูปโปรไฟล์ ---
     if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
         $target_dir = "uploads/profiles/";
         if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
@@ -50,8 +46,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // --- 3. จัดการ Soft Skills (ตาราง user_skills) ---
-    // ลบทิ้งและสร้างใหม่
     $conn->query("DELETE FROM user_skills WHERE user_id = $user_id");
 
     $soft_skills_list = [
@@ -74,7 +68,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     $stmt_skill->close();
 
-    // --- 4. จัดการ Hard Skills แบบไดนามิก (ตาราง user_hard_skills) ---
     $conn->query("DELETE FROM user_hard_skills WHERE user_id = $user_id");
 
     if (isset($_POST['hard_skill_name']) && is_array($_POST['hard_skill_name'])) {
@@ -93,41 +86,60 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt_hs->close();
     }
 
-    // --- 5. จัดการ ผลงาน / กิจกรรมเพิ่มเติม (ตาราง user_custom_activities) ---
-    $conn->query("DELETE FROM user_custom_activities WHERE user_id = $user_id");
+    $custom_act_ids = $_POST['custom_act_id'] ?? [];
+    $existing_images = $_POST['existing_custom_act_image'] ?? [];
+    
+    $kept_ids = array_filter($custom_act_ids);
+    if (!empty($kept_ids)) {
+        $ids_str = implode(',', array_map('intval', $kept_ids));
+        $conn->query("DELETE FROM user_custom_activities WHERE user_id = $user_id AND id NOT IN ($ids_str)");
+    } else {
+        $conn->query("DELETE FROM user_custom_activities WHERE user_id = $user_id");
+    }
 
     if (isset($_POST['custom_act_title']) && is_array($_POST['custom_act_title'])) {
-        $sql_act = "INSERT INTO user_custom_activities (user_id, title, role, description, image_path) VALUES (?, ?, ?, ?, ?)";
-        $stmt_act = $conn->prepare($sql_act);
-
         for ($i = 0; $i < count($_POST['custom_act_title']); $i++) {
+            $act_id = trim($custom_act_ids[$i] ?? '');
             $act_title = trim($_POST['custom_act_title'][$i]);
-            $act_role = trim($_POST['custom_act_role'][$i]);
-            $act_desc = trim($_POST['custom_act_desc'][$i]);
-            $act_image_name = NULL;
+            $act_role = trim($_POST['custom_act_role'][$i] ?? '');
+            $act_desc = trim($_POST['custom_act_desc'][$i] ?? '');
+            
+            $act_image_name = trim($existing_images[$i] ?? '');
+            if (empty($act_image_name)) {
+                $act_image_name = NULL;
+            }
 
-            // ตรวจสอบไฟล์อัปโหลดสำหรับกิจกรรม
             if (isset($_FILES['custom_act_image']['name'][$i]) && $_FILES['custom_act_image']['error'][$i] == 0) {
                 $act_target_dir = "uploads/activities/";
                 if (!is_dir($act_target_dir)) mkdir($act_target_dir, 0777, true);
 
                 $ext = pathinfo($_FILES['custom_act_image']['name'][$i], PATHINFO_EXTENSION);
-                $act_image_name = "act_" . $user_id . "_" . time() . "_" . $i . "." . $ext;
-                $act_target_file = $act_target_dir . $act_image_name;
+                $new_image_name = "act_" . $user_id . "_" . time() . "_" . $i . "." . $ext;
+                $act_target_file = $act_target_dir . $new_image_name;
 
-                move_uploaded_file($_FILES['custom_act_image']['tmp_name'][$i], $act_target_file);
+                if (move_uploaded_file($_FILES['custom_act_image']['tmp_name'][$i], $act_target_file)) {
+                    $act_image_name = $new_image_name;
+                }
             }
 
-            // บันทึกเมื่อมีชื่อเรื่องกิจกรรม
             if (!empty($act_title)) {
-                $stmt_act->bind_param("issss", $user_id, $act_title, $act_role, $act_desc, $act_image_name);
-                $stmt_act->execute();
+                if (!empty($act_id)) {
+                    $sql_update = "UPDATE user_custom_activities SET title=?, role=?, description=?, image_path=? WHERE id=? AND user_id=?";
+                    $stmt_up = $conn->prepare($sql_update);
+                    $stmt_up->bind_param("ssssii", $act_title, $act_role, $act_desc, $act_image_name, $act_id, $user_id);
+                    $stmt_up->execute();
+                    $stmt_up->close();
+                } else {
+                    $sql_insert = "INSERT INTO user_custom_activities (user_id, title, role, description, image_path) VALUES (?, ?, ?, ?, ?)";
+                    $stmt_in = $conn->prepare($sql_insert);
+                    $stmt_in->bind_param("issss", $user_id, $act_title, $act_role, $act_desc, $act_image_name);
+                    $stmt_in->execute();
+                    $stmt_in->close();
+                }
             }
         }
-        $stmt_act->close();
     }
 
-    // --- 6. จัดการข้อมูลด้านภาษาแบบไดนามิก (ตาราง user_languages) ---
     $conn->query("DELETE FROM user_languages WHERE user_id = $user_id");
 
     if (isset($_POST['lang_name']) && is_array($_POST['lang_name'])) {
@@ -141,7 +153,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $l_read   = trim($_POST['lang_read'][$i] ?? '');
             $l_write  = trim($_POST['lang_write'][$i] ?? '');
 
-            // บันทึกเฉพาะเมื่อผู้ใช้กรอกชื่อภาษามา
             if (!empty($l_name)) {
                 $stmt_l->bind_param("isssss", $user_id, $l_name, $l_listen, $l_speak, $l_read, $l_write);
                 $stmt_l->execute();
@@ -150,7 +161,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt_l->close();
     }
 
-    // เมื่อบันทึกทั้งหมดสำเร็จ ให้เด้งกลับไปที่หน้า e-portfolio
     header("Location: e-portfolio.php?update=success");
     exit();
 } else {

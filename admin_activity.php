@@ -405,7 +405,7 @@ $result = $conn->query($sql);
                         <p class="text-muted mb-0">ค้นหาและลงทะเบียนเข้าร่วมกิจกรรม</p>
                     </div>
                     <?php if ($_SESSION['userrole'] === 'club_president'): ?>
-                    <a href="admin_create_Activity.php" class="btn btn-purple-custom shadow-sm btn-create-mobile py-2 px-4">
+                    <a href="admin_create_activity.php" class="btn btn-purple-custom shadow-sm btn-create-mobile py-2 px-4">
                         <i class="fa-solid fa-plus-circle me-2"></i>สร้างกิจกรรมใหม่
                     </a>
                     <?php endif; ?>

@@ -9,7 +9,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// ดึงข้อมูลผู้ใช้งาน
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $user_id);
@@ -20,14 +19,12 @@ $stmt_user->close();
 $first_name = $user_profile['first_name'] ?? 'ผู้ใช้งาน';
 $full_name = ($user_profile['first_name'] ?? '') . ' ' . ($user_profile['last_name'] ?? '');
 
-// จัดการรูปโปรไฟล์
 $profile_image_file = (!empty($user_profile['profile_image']) && $user_profile['profile_image'] != 'default.png') ? $user_profile['profile_image'] : 'default.png';
 $profile_image_url = 'uploads/profiles/' . $profile_image_file;
 if (!file_exists($profile_image_url) && $profile_image_file !== 'default.png') {
      $profile_image_url = 'https://placehold.co/150x150?text=No+Image';
 }
 
-// ดึงข้อมูล Soft Skills
 $sql_skills = "SELECT skill_name, skill_level FROM user_skills WHERE user_id = ?";
 $stmt_skills = $conn->prepare($sql_skills);
 $stmt_skills->bind_param("i", $user_id);
@@ -39,7 +36,6 @@ while ($row = $result_skills->fetch_assoc()) {
 }
 $stmt_skills->close();
 
-// ดึงข้อมูล Hard Skills
 $hard_skills_data = [];
 $sql_hs = "SELECT * FROM user_hard_skills WHERE user_id = ?";
 $stmt_hs = $conn->prepare($sql_hs);
@@ -51,7 +47,6 @@ while ($row = $result_hs->fetch_assoc()) {
 }
 $stmt_hs->close();
 
-// ดึงข้อมูลด้านภาษา (ใหม่)
 $languages_data = [];
 $sql_lang = "SELECT * FROM user_languages WHERE user_id = ?";
 $stmt_lang = $conn->prepare($sql_lang);
@@ -63,7 +58,17 @@ while ($row = $result_lang->fetch_assoc()) {
 }
 $stmt_lang->close();
 
-// รายการ Soft Skills 15 ข้อ
+$custom_activities_data = [];
+$sql_custom_act = "SELECT * FROM user_custom_activities WHERE user_id = ?";
+$stmt_custom_act = $conn->prepare($sql_custom_act);
+$stmt_custom_act->bind_param("i", $user_id);
+$stmt_custom_act->execute();
+$result_custom_act = $stmt_custom_act->get_result();
+while ($row = $result_custom_act->fetch_assoc()) {
+    $custom_activities_data[] = $row;
+}
+$stmt_custom_act->close();
+
 $soft_skills = [
     'ss_1' => 'การสื่อสารที่ดี', 'ss_2' => 'การทำงานเป็นทีม', 'ss_3' => 'การแก้ปัญหาเฉพาะหน้า',
     'ss_4' => 'การคิดวิเคราะห์', 'ss_5' => 'การบริหารเวลา', 'ss_6' => 'ความรับผิดชอบต่อหน้าที่',
@@ -116,7 +121,8 @@ $level_options = ['ดีเยี่ยม', 'ดี', 'ปานกลาง',
 <body>
     <nav class="top-navbar">
         <div class="brand-section">
-            <img src="img/logo.png" alt="Logo" class="brand-logo" onerror="this.src='https://placehold.co/60x60?text=Logo'">
+             <i class="fa-solid fa-bars d-md-none me-2" id="mobileMenuBtn" style="font-size: 24px; cursor: pointer;"></i>
+                <img src="img/logo.png" alt="Logo" class="brand-logo">
             <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
                 <span class="brand-name">SMO SCITECH KPRU</span>
                 <span class="text-page-pill-btn mt-1">E - portfolio</span>
@@ -152,14 +158,66 @@ $level_options = ['ดีเยี่ยม', 'ดี', 'ปานกลาง',
                     <div class="section-title border-0 mb-0 pb-0"><i class="fa-solid fa-folder-plus"></i> ผลงาน / กิจกรรมเพิ่มเติม</div>
                     <button type="button" class="add-btn mb-2" id="addActivityBtn"><i class="fa-solid fa-plus"></i> เพิ่มผลงาน</button>
                 </div>
+                
                 <div id="activityContainer">
-                    <div class="row g-3 mb-4 p-3 border rounded bg-light activity-row">
-                        <div class="col-md-12 text-end"><button type="button" class="btn btn-sm btn-danger remove-activity"><i class="fa-solid fa-trash"></i> ลบ</button></div>
-                        <div class="col-md-6"><label class="form-label">ชื่อผลงาน / กิจกรรม</label><input type="text" class="form-control" name="custom_act_title[]" placeholder="ระบุชื่อผลงาน"></div>
-                        <div class="col-md-6"><label class="form-label">บทบาท / หน้าที่</label><input type="text" class="form-control" name="custom_act_role[]" placeholder="เช่น หัวหน้าทีม, ผู้เข้าร่วม"></div>
-                        <div class="col-12"><label class="form-label">รายละเอียด</label><textarea class="form-control" name="custom_act_desc[]" rows="2" placeholder="อธิบายสั้นๆ"></textarea></div>
-                        <div class="col-12"><label class="form-label"><i class="fa-solid fa-image"></i> รูปภาพผลงาน (ถ้ามี)</label><input type="file" class="form-control" name="custom_act_image[]" accept="image/*"></div>
-                    </div>
+                    <?php if(count($custom_activities_data) > 0): ?>
+                        <?php foreach($custom_activities_data as $act): ?>
+                        <div class="row g-3 mb-4 p-3 border rounded bg-light activity-row">
+                            <input type="hidden" name="custom_act_id[]" value="<?php echo htmlspecialchars($act['id']); ?>">
+                            <input type="hidden" name="existing_custom_act_image[]" value="<?php echo htmlspecialchars($act['image_path'] ?? ''); ?>">
+
+                            <div class="col-md-12 text-end">
+                                <button type="button" class="btn btn-sm btn-danger remove-activity"><i class="fa-solid fa-trash"></i> ลบ</button>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">ชื่อผลงาน / กิจกรรม</label>
+                                <input type="text" class="form-control" name="custom_act_title[]" value="<?php echo htmlspecialchars($act['title']); ?>" placeholder="ระบุชื่อผลงาน" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">บทบาท / หน้าที่</label>
+                                <input type="text" class="form-control" name="custom_act_role[]" value="<?php echo htmlspecialchars($act['role'] ?? ''); ?>" placeholder="เช่น หัวหน้าทีม, ผู้เข้าร่วม">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">รายละเอียด</label>
+                                <textarea class="form-control" name="custom_act_desc[]" rows="2" placeholder="อธิบายสั้นๆ"><?php echo htmlspecialchars($act['description'] ?? ''); ?></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label"><i class="fa-solid fa-image"></i> รูปภาพผลงาน (อัปโหลดใหม่หากต้องการเปลี่ยน)</label>
+                                <?php if(!empty($act['image_path'])): ?>
+                                    <div class="mb-2">
+                                        <img src="uploads/activities/<?php echo htmlspecialchars($act['image_path']); ?>" alt="Activity Image" style="max-height: 120px; border-radius: 8px; border: 1px solid #ddd; padding: 3px;">
+                                    </div>
+                                <?php endif; ?>
+                                <input type="file" class="form-control" name="custom_act_image[]" accept="image/*">
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="row g-3 mb-4 p-3 border rounded bg-light activity-row">
+                            <input type="hidden" name="custom_act_id[]" value="">
+                            <input type="hidden" name="existing_custom_act_image[]" value="">
+                            
+                            <div class="col-md-12 text-end">
+                                <button type="button" class="btn btn-sm btn-danger remove-activity"><i class="fa-solid fa-trash"></i> ลบ</button>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">ชื่อผลงาน / กิจกรรม</label>
+                                <input type="text" class="form-control" name="custom_act_title[]" placeholder="ระบุชื่อผลงาน">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">บทบาท / หน้าที่</label>
+                                <input type="text" class="form-control" name="custom_act_role[]" placeholder="เช่น หัวหน้าทีม, ผู้เข้าร่วม">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">รายละเอียด</label>
+                                <textarea class="form-control" name="custom_act_desc[]" rows="2" placeholder="อธิบายสั้นๆ"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label"><i class="fa-solid fa-image"></i> รูปภาพผลงาน (ถ้ามี)</label>
+                                <input type="file" class="form-control" name="custom_act_image[]" accept="image/*">
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -305,10 +363,11 @@ $level_options = ['ดีเยี่ยม', 'ดี', 'ปานกลาง',
             <option value="ศึกษา">ศึกษา</option>
         `;
 
-        // เพิ่มฟอร์มผลงาน
         $('#addActivityBtn').click(function() {
             $('#activityContainer').append(`
                 <div class="row g-3 mb-4 p-3 border rounded bg-light activity-row">
+                    <input type="hidden" name="custom_act_id[]" value="">
+                    <input type="hidden" name="existing_custom_act_image[]" value="">
                     <div class="col-md-12 text-end"><button type="button" class="btn btn-sm btn-danger remove-activity"><i class="fa-solid fa-trash"></i> ลบ</button></div>
                     <div class="col-md-6"><label class="form-label">ชื่อผลงาน / กิจกรรม</label><input type="text" class="form-control" name="custom_act_title[]" placeholder="ระบุชื่อผลงาน"></div>
                     <div class="col-md-6"><label class="form-label">บทบาท / หน้าที่</label><input type="text" class="form-control" name="custom_act_role[]" placeholder="เช่น หัวหน้าทีม, ผู้เข้าร่วม"></div>
@@ -318,7 +377,6 @@ $level_options = ['ดีเยี่ยม', 'ดี', 'ปานกลาง',
             `);
         });
 
-        // เพิ่มฟอร์ม Hard Skill (คอมพิวเตอร์)
         $('#addHardSkillBtn').click(function() {
             $('#hardSkillContainer').append(`
                 <div class="row g-3 mb-4 p-3 border rounded bg-light hard-skill-row">
@@ -329,7 +387,6 @@ $level_options = ['ดีเยี่ยม', 'ดี', 'ปานกลาง',
             `);
         });
 
-        // เพิ่มฟอร์มภาษา
         $('#addLanguageBtn').click(function() {
             $('#languageContainer').append(`
                 <div class="row g-3 mb-4 p-3 border rounded language-row">
@@ -343,10 +400,20 @@ $level_options = ['ดีเยี่ยม', 'ดี', 'ปานกลาง',
             `);
         });
 
-        // ลบฟอร์ม (ใช้ Class ในการลบ)
         $(document).on('click', '.remove-activity', function() { $(this).closest('.activity-row').remove(); });
         $(document).on('click', '.remove-hard-skill', function() { $(this).closest('.hard-skill-row').remove(); });
         $(document).on('click', '.remove-language', function() { $(this).closest('.language-row').remove(); });
+
+        $('input[type="radio"]:checked').data('waschecked', true);
+        $(document).on('click', 'input[type="radio"]', function() {
+            if ($(this).data('waschecked') === true) {
+                $(this).prop('checked', false);
+                $(this).data('waschecked', false);
+            } else {
+                $('input[name="' + this.name + '"]').data('waschecked', false);
+                $(this).data('waschecked', true);
+            }
+        });
     });
     </script>
 </body>

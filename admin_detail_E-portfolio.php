@@ -8,7 +8,6 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-// --- ดึงข้อมูลรูปโปรไฟล์ของผู้ใช้ที่ล็อกอิน (แอดมิน) สำหรับแสดงบน Navbar ---
 $admin_user_id = $_SESSION['user_id'];
 $stmt_admin = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
 $stmt_admin->bind_param("i", $admin_user_id);
@@ -17,7 +16,7 @@ $res_admin = $stmt_admin->get_result();
 $admin_data = $res_admin->fetch_assoc();
 $admin_profile_image = !empty($admin_data['profile_image']) ? $admin_data['profile_image'] : 'default.png';
 $stmt_admin->close();
-// ------------------------------------------------------------------
+
 
 $target_user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
 if ($target_user_id === 0) {
@@ -25,7 +24,6 @@ if ($target_user_id === 0) {
     exit();
 }
 
-// 1. ดึงข้อมูลผู้ใช้งานจริง (นักศึกษาที่ถูกดู E-Portfolio)
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $target_user_id);
@@ -41,7 +39,6 @@ if (!file_exists($profile_image_url) && $profile_image_file !== 'default.png') {
      $profile_image_url = 'https://placehold.co/150x150?text=No+Image';
 }
 
-// 2. ดึงข้อมูล Soft Skills
 $sql_skills = "SELECT skill_name, skill_level FROM user_skills WHERE user_id = ? ORDER BY skill_level DESC";
 $stmt_skills = $conn->prepare($sql_skills);
 $stmt_skills->bind_param("i", $target_user_id);
@@ -53,7 +50,6 @@ while ($row = $result_skills->fetch_assoc()) {
 }
 $stmt_skills->close();
 
-// 3. ดึงข้อมูล Hard Skills (เทคโนโลยี)
 $hard_skills_data = [];
 $sql_hs = "SELECT * FROM user_hard_skills WHERE user_id = ?";
 $stmt_hs = $conn->prepare($sql_hs);
@@ -65,7 +61,6 @@ while ($row = $result_hs->fetch_assoc()) {
 }
 $stmt_hs->close();
 
-// 4. ดึงข้อมูลด้านภาษา
 $languages_data = [];
 $sql_lang = "SELECT * FROM user_languages WHERE user_id = ?";
 $stmt_lang = $conn->prepare($sql_lang);
@@ -77,7 +72,6 @@ while ($row = $result_lang->fetch_assoc()) {
 }
 $stmt_lang->close();
 
-// 5. ดึงกิจกรรมเพิ่มเติมที่ผู้ใช้เพิ่มเอง (Custom Activities)
 $custom_activities = [];
 $sql_custom = "SELECT * FROM user_custom_activities WHERE user_id = ? ORDER BY id DESC";
 $stmt_custom = $conn->prepare($sql_custom);
@@ -89,7 +83,6 @@ while ($row = $result_custom->fetch_assoc()) {
 }
 $stmt_custom->close();
 
-// 6. ดึงกิจกรรมจากระบบที่ผ่านการประเมินจริง (System Activities)
 $portfolio_activities = [];
 $sql_act = "SELECT 
                 a.title, a.description, a.start_date, a.end_date, a.hours_count, a.cover_image,
@@ -463,20 +456,20 @@ $stmt_act->close();
                         <?php endif; ?>
 
                         <?php if(count($hard_skills_data) > 0): ?>
-                            <div class="section-pill mt-5"><i class="fa-solid fa-laptop-code"></i> Hard Skills</div>
+                            <div class="section-pill mt-5">Hard Skills</div>
                             <?php foreach($hard_skills_data as $hs): ?>
                                 <div class="skill-block" style="background:#fff; padding:10px; border-radius:8px; border: 1px solid #eee;">
-                                    <div class="skill-name text-primary mb-1"><i class="fa-solid fa-desktop me-1"></i> <?php echo htmlspecialchars($hs['skill_name']); ?></div>
+                                    <div class="skill-name mb-1"><?php echo htmlspecialchars($hs['skill_name']); ?></div>
                                     <div class="small text-muted">ระดับ: <?php echo htmlspecialchars($hs['skill_level']); ?></div>
                                 </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
 
                         <?php if(count($languages_data) > 0): ?>
-                            <div class="section-pill mt-5" style="background-color: #2e7d32;"><i class="fa-solid fa-language"></i> Languages</div>
+                            <div class="section-pill mt-5">Languages</div>
                             <?php foreach($languages_data as $lang): ?>
                                 <div class="skill-block" style="background:#fff; padding:10px; border-radius:8px; border: 1px solid #eee;">
-                                    <div class="skill-name text-success mb-1"><?php echo htmlspecialchars($lang['lang_name']); ?></div>
+                                    <div class="skill-name mb-1"><?php echo htmlspecialchars($lang['lang_name']); ?></div>
                                     <div style="font-size:12px; color:var(--text-muted); line-height: 1.5;">
                                         ฟัง: <?php echo htmlspecialchars($lang['lang_listen'] ?? '-'); ?> | พูด: <?php echo htmlspecialchars($lang['lang_speak'] ?? '-'); ?><br>
                                         อ่าน: <?php echo htmlspecialchars($lang['lang_read'] ?? '-'); ?> | เขียน: <?php echo htmlspecialchars($lang['lang_write'] ?? '-'); ?>
