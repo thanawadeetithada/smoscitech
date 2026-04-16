@@ -80,7 +80,6 @@ $role_names = [
         min-height: 100vh;
     }
 
-    
     .top-navbar {
         background-color: var(--top-bar-bg);
         min-height: 80px;
@@ -156,14 +155,12 @@ $role_names = [
         display: block;
     }
 
-    
     .main-wrapper {
         display: flex;
         flex: 1;
         position: relative;
     }
 
-    
     .sidebar {
         width: 230px;
         background-color: var(--yellow-sidebar);
@@ -203,7 +200,6 @@ $role_names = [
         font-size: 13px;
     }
 
-    
     .content-area {
         flex-grow: 1;
         padding: 40px;
@@ -211,7 +207,6 @@ $role_names = [
         flex-direction: column;
     }
 
-    
     .header-actions {
         display: flex;
         justify-content: flex-end;
@@ -259,7 +254,6 @@ $role_names = [
         width: 100%;
     }
 
-    
     .custom-table {
         width: 100%;
         border-collapse: separate;
@@ -294,32 +288,23 @@ $role_names = [
         border-radius: 0 5px 5px 0;
     }
 
-    .status-badge-member {
-        border: 1px solid #34C759;
-        color: white;
-        padding: 4px 15px;
-        border-radius: 5px;
-        display: inline-block;
-        background-color: #34C759;
+    /* ซ่อนลูกศร Dropdown ดั้งเดิมนิดหน่อยให้สวยงาม */
+    .status-select {
+        text-align: center;
         font-weight: bold;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .status-select:focus {
+        box-shadow: none;
+        outline: 2px solid #fff;
     }
 
-    .status-badge-no-member {
-        border: 1px solid #FF383C;
-        color: white;
-        padding: 4px 15px;
-        border-radius: 5px;
-        display: inline-block;
-        background-color: #FF383C;
-        font-weight: bold;
-    }
-
-    
     .modal-header.bg-purple {
         background-color: var(--btn-blue);
     }
 
-    
     @media (max-width: 768px) {
         .sidebar {
             position: absolute;
@@ -465,7 +450,7 @@ $role_names = [
                                 <th>ชั้นปี</th>
                                 <th>สาขาวิชา</th>
                                 <th>ตำแหน่ง</th>
-                                <th>สถานะ</th>
+                                <th>สถานะสมาชิก</th>
                                 <th>จัดการ</th>
                             </tr>
                         </thead>
@@ -482,12 +467,28 @@ $role_names = [
                     // นำชื่อและนามสกุลมาต่อกันโดยเว้นวรรคตรงกลาง
                     $full_name = $row['first_name'] . " " . $row['last_name'];
 
-                    // จัดการแสดงผลสถานะสมาชิก
-                    if ($row['membership_status'] === 'member') {
-                        $status_html = "<span class='status-badge-member'>สมาชิก</span>";
+                    // จัดการแสดงผล Dropdown สถานะสมาชิก
+                    $status_val = $row['membership_status'];
+                    $select_class = '';
+                    
+                    if ($status_val === 'member') {
+                        $select_class = 'bg-success text-white'; // สีเขียว
+                    } else if ($status_val === 'no_member') {
+                        $select_class = 'bg-danger text-white'; // สีแดง
                     } else {
-                        $status_html = "<span class='status-badge-no-member'>ไม่เป็นสมาชิก</span>";
+                        // ค่า pending (รอพิจารณา)
+                        $select_class = 'bg-warning text-dark'; // สีเหลือง
                     }
+
+                    // สร้าง Dropdown
+                    $status_html = "
+                        <select class='form-select form-select-sm status-select {$select_class} mx-auto' 
+                                data-user-id='{$row['user_id']}' style='width: 190px;'>
+                            <option value='pending' class='bg-white text-dark' " . ($status_val == 'pending' ? 'selected' : '') . ">รอพิจารณา</option>
+                            <option value='member' class='bg-white text-dark' " . ($status_val == 'member' ? 'selected' : '') . ">✓ อนุมัติเป็นสมาชิก</option>
+                            <option value='no_member' class='bg-white text-dark' " . ($status_val == 'no_member' ? 'selected' : '') . ">✗ ไม่อนุมัติการเป็นสมาชิก</option>
+                        </select>
+                    ";
 
                     echo "<tr>
                             <td>" . $ลำดับ++ . "</td>
@@ -569,11 +570,9 @@ $role_names = [
             $('.sidebar').toggleClass('active');
         });
 
-        // ปิด Sidebar หากคลิกพื้นที่อื่นบนหน้าจอ (เฉพาะในหน้าจอมือถือ)
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
-                if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')
-                    .length) {
+                if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {
                     $('.sidebar').removeClass('active');
                 }
             }
@@ -596,6 +595,44 @@ $role_names = [
             } else {
                 $("#noResult").hide();
             }
+        });
+
+        // -------------------------------------------------------------
+        // ระบบอัปเดตสถานะสมาชิกผ่าน AJAX
+        // -------------------------------------------------------------
+        $(document).on('change', '.status-select', function() {
+            var userId = $(this).data('user-id');
+            var newStatus = $(this).val();
+            var selectElement = $(this);
+
+            $.ajax({
+                url: 'update_membership_status.php',
+                type: 'POST',
+                data: {
+                    user_id: userId,
+                    status: newStatus
+                },
+                success: function(response) {
+                    // ลบคลาสสีเก่าออก
+                    selectElement.removeClass('bg-success bg-danger bg-warning text-white text-dark');
+                    
+                    // เพิ่มคลาสสีใหม่ตามสถานะ
+                    if (newStatus === 'member') {
+                        selectElement.addClass('bg-success text-white');
+                    } else if (newStatus === 'no_member') {
+                        selectElement.addClass('bg-danger text-white');
+                    } else {
+                        selectElement.addClass('bg-warning text-dark');
+                    }
+                    
+                    // แสดงแจ้งเตือน (ลบออกได้ถ้าไม่อยากให้ป๊อปอัพเด้งทุกครั้ง)
+                    // $("#alertMessage").text("อัปเดตสถานะสำเร็จ");
+                    // $("#alertModal").modal("show");
+                },
+                error: function() {
+                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+                }
+            });
         });
 
         // ระบบลบข้อมูล AJAX
@@ -637,5 +674,4 @@ $role_names = [
     });
     </script>
 </body>
-
 </html>

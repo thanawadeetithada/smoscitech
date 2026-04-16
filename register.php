@@ -18,7 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     // กำหนดค่าเริ่มต้นสำหรับสมาชิกใหม่
     $userrole = 'club_member'; 
-    $membership_status = 'no_member'; 
+    $membership_status = 'pending'; 
 
     $profile_image = isset($_POST['existing_profile_image']) ? $_POST['existing_profile_image'] : "default.png";
 
@@ -461,7 +461,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                         name="email" placeholder="อีเมล" required></div>
                             </div>
                             <div class="col-12">
-                                <label class="small text-muted mb-1 ms-2">รูปโปรไฟล์ (ไม่บังคับ)</label>
+                                <label class="small text-muted mb-1 ms-2">รูปโปรไฟล์</label>
                                 <div class="input-group-custom"><i class="fa fa-image"></i><input type="file"
                                         name="profile_image" accept="image/*" required></div>
                             </div>

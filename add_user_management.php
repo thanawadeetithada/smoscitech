@@ -102,14 +102,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (empty($error_message)) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        // เพิ่ม phone ลงใน SQL
-        $sql = "INSERT INTO users (first_name, last_name, email, idstudent, password, academic_year, year_level, department, profile_image, userrole, phone) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        $membership_status = 'pending'; 
+
+        $sql = "INSERT INTO users (first_name, last_name, email, idstudent, password, academic_year, year_level, department, profile_image, userrole, phone, membership_status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try {
             $stmt = $conn->prepare($sql);
-            // เพิ่ม 's' สำหรับ phone รวมเป็น 11 ตัว และใส่ตัวแปร $phone
-            $stmt->bind_param("sssssssssss", $first_name, $last_name, $email, $idstudent, $hashed_password, $academic_year, $year_level, $department, $profile_image, $userrole, $phone);
+            $stmt->bind_param("ssssssssssss", $first_name, $last_name, $email, $idstudent, $hashed_password, $academic_year, $year_level, $department, $profile_image, $userrole, $phone, $membership_status);
             $stmt->execute();
             $registration_success = true;
             $stmt->close();
@@ -160,7 +161,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         min-height: 100vh;
     }
 
-    
+
     .top-navbar {
         background-color: var(--top-bar-bg);
         min-height: 80px;
@@ -236,14 +237,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         display: block;
     }
 
-    
+
     .main-wrapper {
         display: flex;
         flex: 1;
         position: relative;
     }
 
-    
+
     .sidebar {
         width: 230px;
         background-color: var(--yellow-sidebar);
@@ -283,7 +284,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         font-size: 13px;
     }
 
-    
+
     .content-area {
         flex-grow: 1;
         padding: 40px;
@@ -292,7 +293,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         align-items: flex-start;
     }
 
-    
+
     .form-container {
         background: #ffffff;
         padding: 40px;
@@ -372,12 +373,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         color: #000;
     }
 
-    
+
     .bg-purple-modal {
         background-color: var(--btn-blue) !important;
     }
 
-    
+
     @media (max-width: 768px) {
         .sidebar {
             position: absolute;
@@ -612,20 +613,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 <label for="password" class="form-label">รหัสผ่าน <span
                                         class="text-danger">*</span></label>
                                 <input type="password" id="password" name="password" placeholder="รหัสผ่าน" required
-                                    class="form-control">
+                                    class="form-control" autocomplete="new-password">
                             </div>
                             <div class="col-md-6">
                                 <label for="confirmpassword" class="form-label">ยืนยันรหัสผ่าน <span
                                         class="text-danger">*</span></label>
                                 <input type="password" id="confirmpassword" name="confirmpassword"
-                                    placeholder="ยืนยันรหัสผ่านอีกครั้ง" required class="form-control">
+                                    placeholder="ยืนยันรหัสผ่านอีกครั้ง" required class="form-control"
+                                    autocomplete="new-password">
                             </div>
                         </div>
 
                         <div class="mb-4">
                             <label for="profile_image" class="form-label">รูปโปรไฟล์</label>
                             <input type="file" id="profile_image" name="profile_image" class="form-control"
-                                accept="image/*" onchange="previewImage(event)">
+                                accept="image/*" onchange="previewImage(event)" required>
                             <input type="hidden" name="existing_profile_image"
                                 value="<?php echo htmlspecialchars($profile_image); ?>">
 

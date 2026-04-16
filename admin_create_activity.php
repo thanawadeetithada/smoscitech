@@ -283,8 +283,6 @@ $depts = [
     }
     
     .btn-outline-custom {
-        border: 1px solid #ccc;
-        background: white;
         border-radius: 8px;
         padding: 10px 25px;
         color: #555;

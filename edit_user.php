@@ -79,7 +79,6 @@ $stmt_profile->close();
         min-height: 100vh;
     }
 
-    
     .top-navbar {
         background-color: var(--top-bar-bg);
         min-height: 80px;
@@ -155,14 +154,12 @@ $stmt_profile->close();
         display: block;
     }
 
-    
     .main-wrapper {
         display: flex;
         flex: 1;
         position: relative;
     }
 
-    
     .sidebar {
         width: 230px;
         background-color: var(--yellow-sidebar);
@@ -202,7 +199,6 @@ $stmt_profile->close();
         font-size: 13px;
     }
 
-    
     .content-area {
         flex-grow: 1;
         padding: 40px 20px;
@@ -316,70 +312,6 @@ $stmt_profile->close();
         margin-top: 30px;
     }
 
-    
-    .membership-status-container {
-        display: flex;
-        align-items: flex-start;
-        gap: 20px;
-        margin-bottom: 25px;
-    }
-
-    .status-title {
-        font-size: 24px;
-        font-weight: bold;
-        margin-top: 5px;
-    }
-
-    .status-options-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .status-item {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        cursor: pointer;
-    }
-
-    .status-circle {
-        width: 35px;
-        height: 35px;
-        border-radius: 50%;
-    }
-
-    .circle-red {
-        background-color: #FF3B30;
-    }
-
-    .circle-green {
-        background-color: #34C759;
-    }
-
-    .status-label-box {
-        font-size: 16px;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        padding: 5px 25px;
-        min-width: 150px;
-        text-align: center;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    }
-
-    .status-radio-input {
-        display: none;
-    }
-
-    
-    .status-radio-input:checked+.status-item .status-label-box {
-        border-color: var(--top-bar-bg);
-        background-color: #fcfcfc;
-        font-weight: bold;
-    }
-
-    
     @media (max-width: 768px) {
         .sidebar {
             position: absolute;
@@ -598,36 +530,11 @@ $stmt_profile->close();
                             </div>
                         </div>
 
-                        <div class="membership-status-container">
-                            <label for="first_name" class="form-label">สถานะ</label>
-                            <div class="status-options-wrapper">
-                                <label>
-                                    <input type="radio" name="membership_status" value="no_member"
-                                        class="status-radio-input"
-                                        <?= ($row['membership_status'] == 'no_member') ? 'checked' : ''; ?>>
-                                    <div class="status-item">
-                                        <div class="status-circle circle-red"></div>
-                                        <div class="status-label-box">ไม่อนุมัติ</div>
-                                    </div>
-                                </label>
-
-                                <label>
-                                    <input type="radio" name="membership_status" value="member"
-                                        class="status-radio-input"
-                                        <?= ($row['membership_status'] == 'member') ? 'checked' : ''; ?>>
-                                    <div class="status-item">
-                                        <div class="status-circle circle-green"></div>
-                                        <div class="status-label-box">อนุมัติ</div>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
                         <div class="row mb-4">
                             <div class="col-md-12">
                                 <label for="profile_image" class="form-label">รูปโปรไฟล์</label>
                                 <input type="file" id="profile_image" name="profile_image" class="form-control"
-                                    accept="image/*" onchange="previewImage(event)">
+                                    accept="image/*" onchange="previewImage(event)" required>
 
                                 <div class="profile-preview-wrapper">
                                     <?php 

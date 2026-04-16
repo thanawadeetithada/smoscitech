@@ -12,7 +12,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $academic_year = $_POST["academic_year"];
     $year_level = $_POST["year_level"];
     $userrole = $_POST["userrole"];
-    $membership_status = $_POST["membership_status"];
 
     // ดึงชื่อไฟล์รูปเก่าจากฐานข้อมูลมาไว้ก่อน เพื่อเตรียมลบ(ถ้ามีการอัปรูปใหม่)
     $sql_old = "SELECT profile_image FROM users WHERE user_id = ?";
@@ -54,11 +53,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // อัปเดตข้อมูลลงฐานข้อมูล
-    $sql = "UPDATE users SET first_name=?, last_name=?, idstudent=?, email=?, userrole=?, department=?, academic_year=?, year_level=?, profile_image=?, membership_status=? WHERE user_id=?";
+    $sql = "UPDATE users SET first_name=?, last_name=?, idstudent=?, email=?, userrole=?, department=?, academic_year=?, year_level=?, profile_image=? WHERE user_id=?";
     $stmt = $conn->prepare($sql);
     
-    $stmt->bind_param("ssssssssssi", 
+    $stmt->bind_param("sssssssssi", 
         $first_name, 
         $last_name, 
         $idstudent, 
@@ -68,7 +66,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $academic_year, 
         $year_level, 
         $profile_image, 
-        $membership_status, 
         $user_id
     );
 

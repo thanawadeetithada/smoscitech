@@ -12,7 +12,6 @@ $user_year_level = $_SESSION['year_level'] ?? '';
 $user_academic_year = $_SESSION['academic_year'] ?? '';
 $user_department = $_SESSION['department'] ?? '';
 
-// --- ดึงข้อมูลรูปโปรไฟล์และชื่อสำหรับ Top Navbar ---
 $stmt_profile = $conn->prepare("SELECT profile_image, first_name FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
@@ -21,20 +20,21 @@ $user_data = $res_profile->fetch_assoc();
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $first_name = !empty($user_data['first_name']) ? $user_data['first_name'] : 'ผู้ใช้งาน';
 $stmt_profile->close();
-// ---------------------------------------------------------
 
-// Query ดึงกิจกรรมตามเงื่อนไขของผู้ใช้
 $sql = "SELECT a.*, 
-        (SELECT SUM(capacity) FROM activity_tasks WHERE activity_id = a.activity_id) as total_capacity,
-        (SELECT COUNT(*) FROM activity_registrations WHERE activity_id = a.activity_id AND registration_status != 'cancelled') as current_registrations
-        FROM activities a 
+               ar.registration_id, 
+               ar.registration_status,
+               (SELECT SUM(capacity) FROM activity_tasks WHERE activity_id = a.activity_id) as total_capacity,
+               (SELECT COUNT(*) FROM activity_registrations WHERE activity_id = a.activity_id AND registration_status != 'cancelled') as current_registrations
+        FROM activities a
+        LEFT JOIN activity_registrations ar ON a.activity_id = ar.activity_id AND ar.user_id = ?
         WHERE (a.allowed_year_level IS NULL OR a.allowed_year_level = '' OR a.allowed_year_level LIKE CONCAT('%', ?, '%'))
         AND (a.allowed_academic_year IS NULL OR a.allowed_academic_year = '' OR a.allowed_academic_year LIKE CONCAT('%', ?, '%'))
         AND (a.allowed_department IS NULL OR a.allowed_department = '' OR a.allowed_department LIKE CONCAT('%', ?, '%'))
         ORDER BY a.start_date DESC";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("sss", $user_year_level, $user_academic_year, $user_department);
+$stmt->bind_param("isss", $user_id, $user_year_level, $user_academic_year, $user_department);
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
@@ -48,7 +48,6 @@ $result = $stmt->get_result();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
-    
     <style>
     :root {
         --top-bar-bg: #A37E5E;
@@ -72,7 +71,6 @@ $result = $stmt->get_result();
         min-height: 100vh;
     }
 
-    
     .top-navbar {
         background-color: var(--top-bar-bg);
         min-height: 80px;
@@ -93,7 +91,10 @@ $result = $stmt->get_result();
         gap: 12px;
     }
 
-    .brand-logo { width: 60px; height: 60px; }
+    .brand-logo {
+        width: 60px;
+        height: 60px;
+    }
 
     .brand-name {
         font-size: clamp(16px, 4vw, 24px);
@@ -113,7 +114,10 @@ $result = $stmt->get_result();
         transition: 0.3s;
     }
 
-    .login-pill-btn:hover { background: #eee; color: black; }
+    .login-pill-btn:hover {
+        background: #eee;
+        color: black;
+    }
 
     .text-page-pill-btn {
         background: white;
@@ -126,7 +130,10 @@ $result = $stmt->get_result();
         font-weight: 500;
     }
 
-    .logout-area { text-align: center; margin-left: 20px; }
+    .logout-area {
+        text-align: center;
+        margin-left: 20px;
+    }
 
     .logout-text {
         color: #000;
@@ -139,14 +146,12 @@ $result = $stmt->get_result();
         display: block;
     }
 
-    
     .main-wrapper {
         display: flex;
         flex: 1;
         position: relative;
     }
 
-    
     .sidebar {
         width: 230px;
         background-color: var(--yellow-sidebar);
@@ -181,104 +186,185 @@ $result = $stmt->get_result();
         color: #000;
     }
 
-    .sidebar-item span { font-weight: bold; font-size: 13px; }
+    .sidebar-item span {
+        font-weight: bold;
+        font-size: 13px;
+    }
 
-    
     .content-area {
         flex-grow: 1;
         padding: 30px;
         display: flex;
         flex-direction: column;
+        min-width: 0;
     }
 
-    
-    .search-container {
-        background: white;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-        margin-bottom: 30px;
-        border: 1px solid rgba(0,0,0,0.05);
-    }
-
-    .activity-card {
-        border: none;
-        border-radius: 15px;
+    .table-container-box {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        margin: 0 auto;
         overflow: hidden;
-        transition: transform 0.3s, box-shadow 0.3s;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        background: white;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
     }
 
-    .activity-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
-    .card-img-top-custom {
-        height: 160px;
-        background: linear-gradient(45deg, #A37E5E, #D7B79E);
-        position: relative;
-    }
-
-    .status-badge {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        padding: 5px 15px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: bold;
-        color: white;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-
-    .status-open { background-color: #28a745; }
-    .status-closed { background-color: #dc3545; }
-    .status-upcoming { background-color: #ffc107; color: #000; }
-
-    .card-body-custom {
-        padding: 20px;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .activity-title {
-        font-weight: bold;
-        font-size: 1.1rem;
-        margin-bottom: 10px;
+    .table-title {
+        padding: 10px;
+        font-size: 18px;
         color: #333;
+        background-color: #FEFBEA;
+        font-weight: bold;
+        margin-bottom: 15px;
     }
 
-    .activity-info {
-        font-size: 0.9rem;
-        color: #6c757d;
-        margin-bottom: 5px;
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: center;
     }
 
-    .btn-purple-custom {
-        background-color: var(--btn-blue);
+    .custom-table th,
+    .custom-table td {
+        white-space: nowrap;
+    }
+
+    .custom-table thead th {
+        background-color: #D3D4D6;
+        padding: 12px;
+        font-weight: 500;
+        color: #333;
+        border-top: 2px solid white;
+        border-bottom: 2px solid white;
+    }
+
+    .custom-table tbody tr {
+        background-color: #EBECF0;
+    }
+
+    .custom-table td {
+        padding: 12px 10px;
+        vertical-align: middle;
+        color: #333;
+        border-bottom: 1px solid white;
+    }
+
+    .btn-upload-custom {
+        background: white;
+        border: none;
+        border-radius: 5px;
+        padding: 4px 12px;
+        font-size: 12px;
+        color: #333;
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 90px;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .btn-upload-custom:hover {
+        background: #f0f0f0;
+        color: #000;
+    }
+
+    .status-badge-green {
+        background-color: #28A745;
+        color: white;
+        padding: 4px 15px;
+        border-radius: 5px;
+        font-size: 11px;
+        display: inline-block;
+        min-width: 90px;
+    }
+
+    .status-badge-yellow {
+        background-color: #FFC107;
+        color: #000;
+        padding: 4px 15px;
+        border-radius: 5px;
+        font-size: 11px;
+        display: inline-block;
+        min-width: 90px;
+    }
+
+    .status-badge-gray {
+        background-color: #6C757D;
+        color: white;
+        padding: 4px 15px;
+        border-radius: 5px;
+        font-size: 11px;
+        display: inline-block;
+        min-width: 90px;
+    }
+
+    .btn-action-detail {
+        background-color: #5C55D9;
+        color: white;
+        border-radius: 5px;
+        padding: 4px 15px;
+        font-size: 11px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-action-edit {
+        background-color: #D633FF;
+        color: white;
+        border-radius: 5px;
+        padding: 4px 15px;
+        font-size: 11px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-action-delete {
+        background-color: #DC3545;
+        color: white;
+        border-radius: 5px;
+        padding: 4px 15px;
+        font-size: 11px;
+        text-decoration: none;
+        display: inline-block;
+        cursor: pointer;
+        border: none;
+    }
+
+    .btn-action-detail:hover,
+    .btn-action-edit:hover,
+    .btn-action-delete:hover {
+        color: white;
+        opacity: 0.8;
+    }
+
+    .pagination-area {
+        margin-top: auto;
+        padding: 30px 15px;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .btn-bottom {
+        background-color: #6358E1;
         color: white;
         border: none;
-        border-radius: 8px;
+        border-radius: 20px;
+        padding: 8px 30px;
+        font-size: 14px;
         transition: 0.3s;
-        font-weight: 500;
     }
 
-    .btn-purple-custom:hover {
+    .btn-bottom:hover {
         background-color: #4a40bd;
-        color: white;
-        transform: translateY(-2px);
     }
 
-    
-    .bg-purple { background-color: var(--btn-blue) !important; }
-
-    
     @media (max-width: 768px) {
         .sidebar {
             position: absolute;
@@ -288,16 +374,25 @@ $result = $stmt->get_result();
             box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
         }
 
-        .sidebar.active { left: 0; }
-        .top-navbar { padding: 10px 15px; }
-        .brand-name { font-size: 18px; }
-        .content-area { padding: 20px 15px; }
-        .logout-text { padding: 2px !important; font-size: 9px !important; }
-        
-        .header-section {
-            flex-direction: column;
-            align-items: flex-start !important;
-            gap: 15px;
+        .sidebar.active {
+            left: 0;
+        }
+
+        .top-navbar {
+            padding: 10px 15px;
+        }
+
+        .brand-name {
+            font-size: 18px;
+        }
+
+        .content-area {
+            padding: 15px;
+        }
+
+        .logout-text {
+            padding: 2px !important;
+            font-size: 9px !important;
         }
     }
     </style>
@@ -307,11 +402,13 @@ $result = $stmt->get_result();
     <div class="wrapper">
         <nav class="top-navbar">
             <div class="brand-section">
-                <i class="fa-solid fa-bars d-md-none me-2" id="mobileMenuBtn" style="font-size: 24px; cursor: pointer;"></i>
-                <img src="img/logo.png" alt="Logo" class="brand-logo">
+                <i class="fa-solid fa-bars d-md-none me-2" id="mobileMenuBtn"
+                    style="font-size: 24px; cursor: pointer;"></i>
+                <img src="img/logo.png" alt="Logo" class="brand-logo"
+                    onerror="this.src='https://via.placeholder.com/60'">
                 <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
                     <span class="brand-name">SMO SCITECH KPRU</span>
-                    <span class="text-page-pill-btn mt-1">กิจกรรมสโมสร</span>
+                    <span class="text-page-pill-btn mt-1">ข้อมูลกิจกรรม</span>
                 </div>
             </div>
             <div class="d-flex align-items-center">
@@ -321,7 +418,8 @@ $result = $stmt->get_result();
                 <div class="logout-area">
                     <a href="user_management.php">
                         <img src="uploads/profiles/<?php echo htmlspecialchars($profile_image); ?>" alt="Profile"
-                             style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                            style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"
+                            onerror="this.src='https://via.placeholder.com/45'">
                     </a>
                     <a href="logout.php" class="logout-text mt-1">Log out</a>
                 </div>
@@ -340,7 +438,7 @@ $result = $stmt->get_result();
                 </a>
                 <a href="user_management.php" class="sidebar-item mb-3">
                     <i class="fa-solid fa-users"></i>
-                    <span>ข้อมูลสมาชิก</span>
+                    <span>ข้อมูลสมาชิกสโมสร</span>
                 </a>
                 <a href="activity.php" class="sidebar-item mb-3">
                     <i class="fa-solid fa-calendar-days"></i>
@@ -349,94 +447,137 @@ $result = $stmt->get_result();
             </aside>
 
             <main class="content-area">
-                <div class="d-flex justify-content-between align-items-center mb-4 header-section">
-                    <div>
-                        <h4 class="fw-bold mb-0" style="color: #333;">กิจกรรมสโมสร</h4>
-                        <p class="text-muted mb-0">ค้นหาและลงทะเบียนเข้าร่วมกิจกรรม (ตามสิทธิ์การเข้าร่วมของคุณ)</p>
+                <?php
+                // เตรียมข้อมูลแยกกลุ่ม
+                $registered_activities = [];
+                $unregistered_activities = [];
+
+                if ($result && $result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        if (!empty($row['registration_id'])) {
+                            $registered_activities[] = $row;
+                        } else {
+                            $unregistered_activities[] = $row;
+                        }
+                    }
+                }
+                ?>
+
+                <div class="table-container-box mb-5">
+                    <div class="table-title">กิจกรรมที่ยังไม่ได้ลงทะเบียน</div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ลำดับ</th>
+                                    <th>ชื่อกิจกรรม</th>
+                                    <th>วันที่</th>
+                                    <th>อัพโหลดหลักฐาน</th>
+                                    <th>สถานะ</th>
+                                    <th>เพิ่มเติม</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (!empty($unregistered_activities)): $i = 1; ?>
+                                    <?php foreach ($unregistered_activities as $row): 
+                                        $date_display = date('d-m-Y', strtotime($row['start_date']));
+                                    ?>
+                                    <tr>
+                                        <td><?php echo $i++; ?></td>
+                                        <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                        <td><?php echo $date_display; ?></td>
+                                        <td>
+                                            <span class="text-muted">-</span>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge-gray">ยังไม่ได้ลงทะเบียน</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <a href="participate_activity.php?id=<?php echo $row['activity_id']; ?>"
+                                                    class="btn-action-detail">รายละเอียด</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลกิจกรรมใหม่</td>
+                                </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                <div class="search-container">
-                    <div class="row g-3">
-                        <div class="col-md-9 col-lg-10">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="fa fa-search text-muted"></i></span>
-                                <input type="text" id="searchInput" class="form-control bg-light border-start-0" placeholder="ค้นหากิจกรรม (ชื่อกิจกรรม)...">
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-lg-2">
-                            <select id="statusFilter" class="form-select bg-light">
-                                <option value="all" selected>ทุกสถานะ</option>
-                                <option value="Open">เปิดรับ</option>
-                                <option value="Closed">ปิดรับ</option>
-                                <option value="Finished">เสร็จสิ้น</option>
-                            </select>
-                        </div>
+                <div class="table-container-box">
+                    <div class="table-title">กิจกรรมที่ลงทะเบียนแล้ว</div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ลำดับ</th>
+                                    <th>ชื่อกิจกรรม</th>
+                                    <th>วันที่</th>
+                                    <th>อัพโหลดหลักฐาน</th>
+                                    <th>สถานะ</th>
+                                    <th>เพิ่มเติม</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (!empty($registered_activities)): $i = 1; ?>
+                                    <?php foreach ($registered_activities as $row): 
+                                        $date_display = date('d-m-Y', strtotime($row['start_date']));
+                                        
+                                        if ($row['registration_status'] == 'pending') {
+                                            $status_class = 'status-badge-yellow'; 
+                                            $status_text = 'รอการอนุมัติ';
+                                        } elseif ($row['registration_status'] == 'approved') {
+                                            $status_class = 'status-badge-green'; 
+                                            $status_text = 'ลงทะเบียนแล้ว';
+                                        } else {
+                                            $status_class = 'status-badge-gray';
+                                            $status_text = ucfirst($row['registration_status']); 
+                                        }
+                                    ?>
+                                    <tr>
+                                        <td><?php echo $i++; ?></td>
+                                        <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                        <td><?php echo $date_display; ?></td>
+                                        <td>
+                                            <a href="upload_evidence.php?reg_id=<?php echo $row['registration_id']; ?>"
+                                                class="btn-upload-custom">
+                                                Upload <i class="fas fa-caret-down text-dark"></i>
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <span class="<?php echo $status_class; ?>"><?php echo $status_text; ?></span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <a href="participate_activity.php?id=<?php echo $row['activity_id']; ?>"
+                                                    class="btn-action-detail">รายละเอียด</a>
+                                                <a href="upload_evidence.php?reg_id=<?php echo $row['registration_id']; ?>&edit=1"
+                                                    class="btn-action-edit">แก้ไข</a>
+                                                <button type="button" class="btn-action-delete"
+                                                    onclick="showDeleteModal(<?php echo $row['registration_id']; ?>)">ลบ</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">ไม่มีรายการกิจกรรมที่ลงทะเบียน</td>
+                                </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
 
-                <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-                    <?php if ($result && $result->num_rows > 0): ?>
-                        <?php while($row = $result->fetch_assoc()): 
-                            $cover_img = !empty($row['cover_image']) ? 'uploads/covers/' . $row['cover_image'] : '';
-                            $status_class = 'status-open';
-                            $status_text = ucfirst($row['status']);
-                            
-                            if($row['status'] == 'closed') $status_class = 'status-closed';
-                            if($row['status'] == 'completed') {
-                                $status_class = 'bg-secondary';
-                                $status_text = 'Finished';
-                            }
-
-                            // กำหนดสีพื้นหลัง Default ให้สอดคล้องกับธีม
-                            $gradients = [
-                                'linear-gradient(45deg, #A37E5E, #C7A68C)',
-                                'linear-gradient(45deg, #8E7057, #B4967C)',
-                                'linear-gradient(45deg, #6358E1, #8B83E6)',
-                                'linear-gradient(45deg, #FEEFB3, #F2D575)'
-                            ];
-                            $current_gradient = $gradients[$row['activity_id'] % 4];
-                        ?>
-                        <div class="col activity-item" data-status="<?php echo $status_text; ?>">
-                            <div class="activity-card">
-                                <div class="card-img-top-custom" style="<?php echo $cover_img ? "background: url('$cover_img') center/cover;" : "background: $current_gradient;"; ?>">
-                                    <span class="status-badge <?php echo $status_class; ?>">
-                                        <?php echo $status_text; ?>
-                                    </span>
-                                </div>
-                                <div class="card-body-custom">
-                                    <div class="activity-info">
-                                        <i class="far fa-calendar-alt text-primary me-1"></i>
-                                        <?php echo date('d M Y', strtotime($row['start_date'])); ?>
-                                    </div>
-                                    <div class="activity-title text-truncate" title="<?php echo htmlspecialchars($row['title']); ?>">
-                                        <?php echo htmlspecialchars($row['title']); ?>
-                                    </div>
-                                    <p class="text-muted small mb-3" style="height: 40px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
-                                        <?php echo htmlspecialchars($row['description']); ?>
-                                    </p>
-                                    <div class="mt-auto">
-                                        <hr class="mt-0 mb-3" style="opacity: 0.1;">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span class="fw-bold" style="font-size: 14px; color: #555;">
-                                                <i class="fas fa-users me-1 text-primary"></i>
-                                                เปิดรับ <?php echo ($row['total_capacity'] ?? 0); ?> คน
-                                            </span>
-                                        </div>
-                                        <a href="participate_activity.php?id=<?php echo $row['activity_id']; ?>" class="btn btn-purple-custom w-100 py-2">
-                                            ดูรายละเอียดและสมัคร
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <?php endwhile; ?>
-                    <?php else: ?>
-                        <div class="col-12 w-100 d-flex flex-column justify-content-center align-items-center py-5 mt-5">
-                            <i class="fas fa-calendar-times fa-4x text-muted mb-3 opacity-50"></i>
-                            <h5 class="text-muted fw-bold">ไม่มีกิจกรรมที่เปิดรับสมัครสำหรับคุณในขณะนี้</h5>
-                        </div>
-                    <?php endif; ?>
+                    <div class="pagination-area">
+                        <button class="btn-bottom" onclick="history.back()">กลับ</button>
+                        <button class="btn-bottom">ถัดไป</button>
+                    </div>
                 </div>
             </main>
         </div>
@@ -446,77 +587,84 @@ $result = $stmt->get_result();
     <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow-lg" style="border-radius: 20px; border: none;">
-                <div class="modal-header <?php echo ($_SESSION['status_modal']['type'] == 'success') ? 'bg-purple' : 'bg-danger'; ?> text-white border-0">
+                <div
+                    class="modal-header <?php echo ($_SESSION['status_modal']['type'] == 'success') ? 'bg-primary' : 'bg-danger'; ?> text-white border-0">
                     <h5 class="modal-title fw-bold"><?php echo $_SESSION['status_modal']['title']; ?></h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-center py-4">
-                    <i class="fas <?php echo ($_SESSION['status_modal']['type'] == 'success') ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'; ?> mb-3" style="font-size: 4rem;"></i>
+                    <i class="fas <?php echo ($_SESSION['status_modal']['type'] == 'success') ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'; ?> mb-3"
+                        style="font-size: 4rem;"></i>
                     <h5 class="text-dark"><?php echo $_SESSION['status_modal']['message']; ?></h5>
                 </div>
                 <div class="modal-footer border-0 justify-content-center">
-                    <button type="button" class="btn btn-purple-custom px-5" data-bs-dismiss="modal">ตกลง</button>
+                    <button type="button" class="btn btn-primary px-5" data-bs-dismiss="modal">ตกลง</button>
                 </div>
             </div>
         </div>
     </div>
     <?php unset($_SESSION['status_modal']); endif; ?>
 
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center p-3" style="border-radius: 20px; border: none;">
+                <div class="modal-header border-0 pb-0 justify-content-end">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-0 pb-4">
+                    <div class="mb-3">
+                        <div class="mx-auto d-flex align-items-center justify-content-center bg-danger bg-opacity-10 rounded-circle"
+                            style="width: 80px; height: 80px;">
+                            <i class="fas fa-trash text-danger fa-2x"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold mb-2">ยืนยันการลบกิจกรรม</h5>
+                    <p class="text-muted mb-1">คุณต้องการลบกิจกรรมนี้หรือไม่?</p>
+
+                    <form id="deleteForm" action="delete_registration.php" method="POST">
+                        <input type="hidden" name="registration_id" id="deleteRegistrationId" value="">
+                        <div class="d-flex justify-content-center gap-2">
+                            <button type="button" class="btn btn-light px-4 rounded-pill fw-medium"
+                                data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-danger px-4 rounded-pill fw-medium"
+                                id="confirmDeleteBtn">ใช่, ลบข้อมูล</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Toggle Sidebar สำหรับมือถือ
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
-
-        // ปิด Sidebar เมื่อคลิกพื้นที่ว่าง
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
-                if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {
+                if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')
+                    .length) {
                     $('.sidebar').removeClass('active');
                 }
             }
         });
-
-        // Show Modal if present
         var statusModalEl = document.getElementById('statusModal');
         if (statusModalEl) {
             var myModal = new bootstrap.Modal(statusModalEl);
             myModal.show();
         }
-
-        // Search & Filter System
-        const searchInput = document.getElementById('searchInput');
-        const statusFilter = document.getElementById('statusFilter');
-        const activityItems = document.querySelectorAll('.activity-item');
-
-        function filterActivities() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const selectedStatus = statusFilter.value;
-
-            activityItems.forEach(item => {
-                const titleElement = item.querySelector('.activity-title');
-                const titleText = titleElement ? titleElement.innerText.toLowerCase() : '';
-                const itemStatus = item.getAttribute('data-status');
-                
-                const matchesSearch = titleText.includes(searchTerm);
-                const matchesStatus = (selectedStatus === 'all') || (itemStatus === selectedStatus);
-
-                if (matchesSearch && matchesStatus) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        searchInput.addEventListener('keyup', filterActivities);
-        statusFilter.addEventListener('change', filterActivities);
     });
+
+    function showDeleteModal(registrationId) {
+        document.getElementById('deleteRegistrationId').value = registrationId;
+        var deleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+        deleteModal.show();
+    }
     </script>
 </body>
+
 </html>
