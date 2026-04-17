@@ -12,7 +12,7 @@ $user_year_level = $_SESSION['year_level'] ?? '';
 $user_academic_year = $_SESSION['academic_year'] ?? '';
 $user_department = $_SESSION['department'] ?? '';
 
-// --- ดึงข้อมูลรูปโปรไฟล์และชื่อสำหรับ Top Navbar ---
+
 $stmt_profile = $conn->prepare("SELECT profile_image, first_name FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
@@ -21,9 +21,9 @@ $user_data = $res_profile->fetch_assoc();
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $first_name = !empty($user_data['first_name']) ? $user_data['first_name'] : 'ผู้ใช้งาน';
 $stmt_profile->close();
-// ---------------------------------------------------------
 
-// Query ดึงกิจกรรมตามเงื่อนไขของผู้ใช้
+
+
 $sql = "SELECT a.*, 
         (SELECT SUM(capacity) FROM activity_tasks WHERE activity_id = a.activity_id) as total_capacity,
         (SELECT COUNT(*) FROM activity_registrations WHERE activity_id = a.activity_id AND registration_status != 'cancelled') as current_registrations
@@ -388,7 +388,7 @@ $result = $stmt->get_result();
                                 $status_text = 'Finished';
                             }
 
-                            // กำหนดสีพื้นหลัง Default ให้สอดคล้องกับธีม
+                            
                             $gradients = [
                                 'linear-gradient(45deg, #A37E5E, #C7A68C)',
                                 'linear-gradient(45deg, #8E7057, #B4967C)',
@@ -467,13 +467,13 @@ $result = $stmt->get_result();
     
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Toggle Sidebar สำหรับมือถือ
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // ปิด Sidebar เมื่อคลิกพื้นที่ว่าง
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {
@@ -482,14 +482,14 @@ $result = $stmt->get_result();
             }
         });
 
-        // Show Modal if present
+        
         var statusModalEl = document.getElementById('statusModal');
         if (statusModalEl) {
             var myModal = new bootstrap.Modal(statusModalEl);
             myModal.show();
         }
 
-        // Search & Filter System
+        
         const searchInput = document.getElementById('searchInput');
         const statusFilter = document.getElementById('statusFilter');
         const activityItems = document.querySelectorAll('.activity-item');

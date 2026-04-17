@@ -13,7 +13,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $year_level = $_POST["year_level"];
     $userrole = $_POST["userrole"];
 
-    // ดึงชื่อไฟล์รูปเก่าจากฐานข้อมูลมาไว้ก่อน เพื่อเตรียมลบ(ถ้ามีการอัปรูปใหม่)
+    
     $sql_old = "SELECT profile_image FROM users WHERE user_id = ?";
     $stmt_old = $conn->prepare($sql_old);
     $stmt_old->bind_param("i", $user_id);
@@ -22,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_data = $res_old->fetch_assoc();
     $profile_image = $user_data['profile_image'];
 
-    // ถ้ามีการอัปโหลดรูปภาพใหม่เข้ามา
+    
     if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
         $allowed = array("jpg" => "image/jpg", "jpeg" => "image/jpeg", "png" => "image/png");
         $filename = $_FILES["profile_image"]["name"];
@@ -31,23 +31,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (array_key_exists(strtolower($ext), $allowed)) {
             $new_filename = "user_" . $user_id . "_" . time() . "." . $ext;
             
-            // 1. กำหนดโฟลเดอร์เป้าหมายให้ชัดเจน
+            
             $target_dir = "uploads/profiles/";
             
-            // 2. เช็คว่ามีโฟลเดอร์ uploads/profiles/ หรือยัง ถ้าไม่มีให้สร้าง
+            
             if (!is_dir($target_dir)) {
                 mkdir($target_dir, 0777, true);
             }
             
-            // 3. ย้ายไฟล์ไปที่ uploads/profiles/
+            
             if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], $target_dir . $new_filename)) {
                 
-                // 4. ลบไฟล์รูปเก่าทิ้ง (ยกเว้นรูป default.png) โดยอ้างอิง path ใหม่
+                
                 if (!empty($profile_image) && $profile_image != 'default.png' && file_exists($target_dir . $profile_image)) {
                     unlink($target_dir . $profile_image);
                 }
                 
-                // อัปเดตตัวแปรเพื่อนำไปบันทึกลงฐานข้อมูล
+                
                 $profile_image = $new_filename;
             }
         }

@@ -8,7 +8,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-// --- ดึงข้อมูลรูปโปรไฟล์และชื่อสำหรับ Top Navbar ---
+
 $user_id = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image, first_name FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
@@ -18,9 +18,9 @@ $user_data = $res_profile->fetch_assoc();
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $first_name = !empty($user_data['first_name']) ? $user_data['first_name'] : 'ผู้ใช้งาน';
 $stmt_profile->close();
-// ---------------------------------------------------------
 
-// ดึงข้อมูลปีการศึกษาจากฐานข้อมูล
+
+
 $academic_years = [];
 $sql_years = "SELECT DISTINCT academic_year FROM users WHERE academic_year IS NOT NULL AND academic_year != '' ORDER BY academic_year DESC";
 $result_years = $conn->query($sql_years);
@@ -530,7 +530,7 @@ $depts = [
 
     <script>
     $(document).ready(function() {
-        // Mobile Sidebar Toggle
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
@@ -544,7 +544,7 @@ $depts = [
             }
         });
 
-        // Initialize Select2
+        
         $('.select2-multiple').select2({
             theme: 'bootstrap-5',
             width: '100%',
@@ -552,7 +552,7 @@ $depts = [
         });
     });
 
-    // Add Task Function
+    
     function addTask() {
         const container = document.getElementById('tasks-container');
         const div = document.createElement('div');

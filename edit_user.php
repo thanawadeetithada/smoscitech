@@ -15,7 +15,7 @@ if (!isset($_GET['user_id'])) {
 
 $user_id = $_GET['user_id'];
 
-// ดึงข้อมูลเป้าหมายที่ต้องการแก้ไข
+
 $sql = "SELECT * FROM users WHERE user_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $user_id);
@@ -28,7 +28,7 @@ if ($result->num_rows == 0) {
 
 $row = $result->fetch_assoc();
 
-// ดึงข้อมูลรูปโปรไฟล์ของแอดมินที่ล็อกอินอยู่ (สำหรับ Navbar)
+
 $logged_in_user_id = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $logged_in_user_id);
@@ -538,9 +538,9 @@ $stmt_profile->close();
 
                                 <div class="profile-preview-wrapper">
                                     <?php 
-                                    // -------------------------------------------------------------
-                                    // แก้ไขพาธรูปภาพมาดึงที่ uploads/profiles/ ทั้งหมด
-                                    // -------------------------------------------------------------
+                                    
+                                    
+                                    
                                     $image_src = "uploads/profiles/default.png";
                                     if (!empty($row['profile_image']) && $row['profile_image'] !== 'default.png' && file_exists("uploads/profiles/" . $row['profile_image'])) {
                                         $image_src = "uploads/profiles/" . htmlspecialchars($row['profile_image']);
@@ -588,13 +588,13 @@ $stmt_profile->close();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Mobile Sidebar Toggle
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // Close Sidebar when clicking outside
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')
@@ -604,7 +604,7 @@ $stmt_profile->close();
             }
         });
 
-        // Status Modal Handling
+        
         const urlParams = new URLSearchParams(window.location.search);
         const status = urlParams.get('status');
 
@@ -631,7 +631,7 @@ $stmt_profile->close();
         });
     });
 
-    // Image Preview Function
+    
     function previewImage(event) {
         const reader = new FileReader();
         const imageField = document.getElementById("preview");

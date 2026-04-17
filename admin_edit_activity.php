@@ -578,7 +578,7 @@ $current_departments = !empty($activity['allowed_department']) ? explode(',', $a
 
     <script>
     $(document).ready(function() {
-        // Mobile Sidebar Toggle
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
@@ -592,7 +592,7 @@ $current_departments = !empty($activity['allowed_department']) ? explode(',', $a
             }
         });
 
-        // Initialize Select2
+        
         $('.select2-multiple').select2({
             theme: 'bootstrap-5',
             width: '100%',
@@ -600,7 +600,7 @@ $current_departments = !empty($activity['allowed_department']) ? explode(',', $a
         });
     });
 
-    // Add Task Function
+    
     function addTask() {
         const container = document.getElementById('tasks-container');
         const div = document.createElement('div');

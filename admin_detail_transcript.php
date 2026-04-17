@@ -8,7 +8,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-// ดึงรูปโปรไฟล์แอดมินสำหรับ Navbar
+
 $logged_in_user_id = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $logged_in_user_id);
@@ -32,12 +32,12 @@ $stmt_user->execute();
 $user_profile = $stmt_user->get_result()->fetch_assoc();
 $stmt_user->close();
 
-$profile_image = 'img/default-profile.png'; // ใช้รูป default หากไม่มี
+$profile_image = 'img/default-profile.png'; 
 if (!empty($user_profile['profile_image']) && $user_profile['profile_image'] != 'default.png') {
     $profile_image = 'uploads/profiles/' . $user_profile['profile_image']; 
 }
 
-// ดึงข้อมูลสถิติ 4 กล่องบน (ใช้ข้อมูลจริง)
+
 $sql_stats = "SELECT 
                 COUNT(registration_id) as total_joined,
                 SUM(CASE WHEN participation_status = 'passed' THEN 1 ELSE 0 END) as total_passed,
@@ -56,7 +56,7 @@ $stmt_stats->close();
 $activities = [];
 $total_hours = 0;
 
-// ดึงข้อมูลกิจกรรมที่ผ่าน
+
 $sql_act = "SELECT 
                 a.title, a.start_date, a.end_date, a.hours_count,
                 t.task_name
@@ -1039,13 +1039,13 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Mobile Sidebar Toggle
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // Close Sidebar when clicking outside
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')

@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// 1. ดึงข้อมูลผู้ใช้งานจริง
+
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $user_id);
@@ -20,14 +20,14 @@ $stmt_user->close();
 $first_name = $user_profile['first_name'] ?? 'ผู้ใช้งาน';
 $full_name = ($user_profile['first_name'] ?? '') . ' ' . ($user_profile['last_name'] ?? '');
 
-// จัดการรูปโปรไฟล์
+
 $profile_image_file = (!empty($user_profile['profile_image']) && $user_profile['profile_image'] != 'default.png') ? $user_profile['profile_image'] : 'default.png';
 $profile_image_url = 'uploads/profiles/' . $profile_image_file;
 if (!file_exists($profile_image_url) && $profile_image_file !== 'default.png') {
      $profile_image_url = 'https://placehold.co/150x150?text=No+Image';
 }
 
-// 2. ดึงข้อมูล Soft Skills
+
 $sql_skills = "SELECT skill_name, skill_level FROM user_skills WHERE user_id = ? ORDER BY skill_level DESC";
 $stmt_skills = $conn->prepare($sql_skills);
 $stmt_skills->bind_param("i", $user_id);
@@ -39,7 +39,7 @@ while ($row = $result_skills->fetch_assoc()) {
 }
 $stmt_skills->close();
 
-// 3. ดึงข้อมูล Hard Skills (เทคโนโลยี)
+
 $hard_skills_data = [];
 $sql_hs = "SELECT * FROM user_hard_skills WHERE user_id = ?";
 $stmt_hs = $conn->prepare($sql_hs);
@@ -51,7 +51,7 @@ while ($row = $result_hs->fetch_assoc()) {
 }
 $stmt_hs->close();
 
-// 4. ดึงข้อมูลด้านภาษา
+
 $languages_data = [];
 $sql_lang = "SELECT * FROM user_languages WHERE user_id = ?";
 $stmt_lang = $conn->prepare($sql_lang);
@@ -63,7 +63,7 @@ while ($row = $result_lang->fetch_assoc()) {
 }
 $stmt_lang->close();
 
-// 5. ดึงกิจกรรมเพิ่มเติมที่ผู้ใช้เพิ่มเอง (Custom Activities)
+
 $custom_activities = [];
 $sql_custom = "SELECT * FROM user_custom_activities WHERE user_id = ? ORDER BY id DESC";
 $stmt_custom = $conn->prepare($sql_custom);
@@ -75,7 +75,7 @@ while ($row = $result_custom->fetch_assoc()) {
 }
 $stmt_custom->close();
 
-// 6. ดึงกิจกรรมจากระบบที่ผ่านการประเมินจริง (System Activities)
+
 $portfolio_activities = [];
 $sql_act = "SELECT 
                 a.title, a.description, a.start_date, a.end_date, a.hours_count, a.cover_image,

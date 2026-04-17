@@ -9,17 +9,17 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-// --- ดึงข้อมูลรูปโปรไฟล์สำหรับ Top Navbar ---
+
 $user_id = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
 $res_profile = $stmt_profile->get_result();
 $user_data = $res_profile->fetch_assoc();
-// ถ้าไม่มีรูปให้ใช้ default.png
+
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $stmt_profile->close();
-// ---------------------------------------------------------
+
 
 $sql = "SELECT a.*, 
         (SELECT SUM(capacity) FROM activity_tasks WHERE activity_id = a.activity_id) as total_capacity,
@@ -443,7 +443,7 @@ $result = $conn->query($sql);
                                 $status_text = 'Finished';
                             }
 
-                            // กำหนดสีพื้นหลัง Default ให้สอดคล้องกับธีมหลัก
+                            
                             $gradients = [
                                 'linear-gradient(45deg, #A37E5E, #C7A68C)',
                                 'linear-gradient(45deg, #8E7057, #B4967C)',
@@ -536,7 +536,7 @@ $result = $conn->query($sql);
     
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Toggle Sidebar สำหรับมือถือ
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
@@ -550,14 +550,14 @@ $result = $conn->query($sql);
             }
         });
 
-        // Show Modal if present
+        
         var statusModalEl = document.getElementById('statusModal');
         if (statusModalEl) {
             var myModal = new bootstrap.Modal(statusModalEl);
             myModal.show();
         }
 
-        // Search Filter System
+        
         const searchInput = document.getElementById('searchInput');
         const statusFilter = document.getElementById('statusFilter');
         const activityItems = document.querySelectorAll('.activity-item');

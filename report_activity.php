@@ -9,7 +9,7 @@ if (!isset($_SESSION['userrole'])) {
 
 $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
 
-// ดึงข้อมูลผู้ใช้งานจริงสำหรับแสดงผลที่ Navbar
+
 $stmt_user_profile = $conn->prepare("SELECT first_name, last_name, profile_image, year_level, academic_year, department FROM users WHERE user_id = ?");
 $stmt_user_profile->bind_param("i", $user_id);
 $stmt_user_profile->execute();
@@ -17,10 +17,10 @@ $user_info = $stmt_user_profile->get_result()->fetch_assoc();
 
 $first_name = $user_info['first_name'] ?? 'ผู้ใช้งาน';
 $full_name = ($user_info['first_name'] ?? '') . ' ' . ($user_info['last_name'] ?? '');
-// ตรวจสอบรูปโปรไฟล์ ถ้าไม่มีให้ใช้รูป default
+
 $profile_image = !empty($user_info['profile_image']) ? $user_info['profile_image'] : 'default.png';
 
-// ดึงรายการกิจกรรม 6 รายการล่าสุด
+
 $stmt_table = $conn->prepare("
     SELECT a.title, a.hours_count 
     FROM activity_registrations ar 
@@ -36,7 +36,7 @@ while ($row = $result_table->fetch_assoc()) {
     $activities_table[] = $row;
 }
 
-// ดึงข้อมูลสำหรับกราฟ
+
 $stmt_chart = $conn->prepare("
     SELECT a.title, a.hours_count 
     FROM activity_registrations ar 
@@ -502,13 +502,13 @@ if ($result_chart && $result_chart->num_rows > 0) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
-        // ระบบเลื่อน Sidebar ในมือถือ (เหมือนฝั่ง Admin)
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // ปิด Sidebar เมื่อกดพื้นที่ว่าง
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {
@@ -518,8 +518,8 @@ if ($result_chart && $result_chart->num_rows > 0) {
         });
     });
 
-    // ระบบสร้างกราฟ (ใช้ข้อมูลจริงจาก PHP)
-    // ระบบสร้างกราฟ (ใช้ข้อมูลจริงจาก PHP)
+    
+    
     document.addEventListener("DOMContentLoaded", function() {
         const ctx = document.getElementById('userActivityChart').getContext('2d');
         const labels = <?php echo json_encode($chart_labels); ?>;
@@ -537,7 +537,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
                         barPercentage: 0.6,
                         borderRadius: 4
                     }
-                    // ลบชุดข้อมูล 'เป้าหมาย' ที่เป็น Mock data (dataCounts.map(v => v + 2)) ออกไปแล้ว
+                    
                 ]
             },
             options: {
@@ -545,14 +545,14 @@ if ($result_chart && $result_chart->num_rows > 0) {
                 maintainAspectRatio: false,
                 plugins: { 
                     legend: { 
-                        display: true, // เปิดให้แสดง Legend เพื่อให้รู้ว่ากราฟแท่งคืออะไร
+                        display: true, 
                         position: 'top'
                     } 
                 },
                 scales: {
                     y: { 
                         beginAtZero: true, 
-                        // ลบ max: 100 ออก เพื่อให้กราฟปรับสเกลแกน Y อัตโนมัติตามข้อมูลชั่วโมงที่มีจริง
+                        
                         ticks: { stepSize: 1 } 
                     },
                     x: { 

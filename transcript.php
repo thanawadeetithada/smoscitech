@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// --- ดึงข้อมูลผู้ใช้งานสำหรับแสดงผล ---
+
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $user_id);
@@ -18,12 +18,12 @@ $user_profile = $stmt_user->get_result()->fetch_assoc();
 $stmt_user->close();
 
 $first_name = $user_profile['first_name'] ?? 'ผู้ใช้งาน';
-$profile_image = 'img/default-profile.png'; // ใช้รูป default หากไม่มี
+$profile_image = 'img/default-profile.png'; 
 if (!empty($user_profile['profile_image']) && $user_profile['profile_image'] != 'default.png') {
     $profile_image = 'uploads/profiles/' . $user_profile['profile_image']; 
 }
 
-// --- ดึงข้อมูลสถิติ 4 กล่อง (ดึงจากข้อมูลจริง) ---
+
 $sql_stats = "SELECT 
                 COUNT(registration_id) as total_joined,
                 SUM(CASE WHEN participation_status = 'passed' THEN 1 ELSE 0 END) as total_passed,
@@ -42,7 +42,7 @@ $stmt_stats->close();
 $activities = [];
 $total_hours = 0;
 
-// --- ดึงข้อมูลกิจกรรมที่ผ่านการประเมินแล้ว ---
+
 $sql_act = "SELECT 
                 a.title, a.start_date, a.end_date, a.hours_count,
                 t.task_name
@@ -687,13 +687,13 @@ $current_date = date('j') . ' ' . $thai_months[date('n')] . ' ' . (date('Y') + 5
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Mobile Sidebar Toggle
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // Click outside to close sidebar
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {

@@ -11,17 +11,17 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
 
 $current_user_role = $_SESSION['userrole'];
 
-// --- ดึงข้อมูลรูปโปรไฟล์สำหรับ Top Navbar ---
+
 $user_id = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
 $res_profile = $stmt_profile->get_result();
 $user_data = $res_profile->fetch_assoc();
-// ถ้าไม่มีรูปให้ใช้ default.png
+
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $stmt_profile->close();
-// ---------------------------------------------------------
+
 
 if ($current_user_role === 'academic_officer') {
     $sql = "SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, membership_status, academic_year, year_level, profile_image
@@ -288,7 +288,7 @@ $role_names = [
         border-radius: 0 5px 5px 0;
     }
 
-    /* ซ่อนลูกศร Dropdown ดั้งเดิมนิดหน่อยให้สวยงาม */
+    
     .status-select {
         text-align: center;
         font-weight: bold;
@@ -457,30 +457,30 @@ $role_names = [
                         <tbody>
                             <?php
             if ($result->num_rows > 0) {
-                // กำหนดตัวแปรลำดับ
+                
                 $ลำดับ = 1; 
 
                 while ($row = $result->fetch_assoc()) {
                     $role_key = $row['userrole'];
                     $display_role = isset($role_names[$role_key]) ? $role_names[$role_key] : $role_key;
                     
-                    // นำชื่อและนามสกุลมาต่อกันโดยเว้นวรรคตรงกลาง
+                    
                     $full_name = $row['first_name'] . " " . $row['last_name'];
 
-                    // จัดการแสดงผล Dropdown สถานะสมาชิก
+                    
                     $status_val = $row['membership_status'];
                     $select_class = '';
                     
                     if ($status_val === 'member') {
-                        $select_class = 'bg-success text-white'; // สีเขียว
+                        $select_class = 'bg-success text-white'; 
                     } else if ($status_val === 'no_member') {
-                        $select_class = 'bg-danger text-white'; // สีแดง
+                        $select_class = 'bg-danger text-white'; 
                     } else {
-                        // ค่า pending (รอพิจารณา)
-                        $select_class = 'bg-warning text-dark'; // สีเหลือง
+                        
+                        $select_class = 'bg-warning text-dark'; 
                     }
 
-                    // สร้าง Dropdown
+                    
                     $status_html = "
                         <select class='form-select form-select-sm status-select {$select_class} mx-auto' 
                                 data-user-id='{$row['user_id']}' style='width: 190px;'>
@@ -564,7 +564,7 @@ $role_names = [
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Toggle Sidebar สำหรับมือถือ
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
@@ -578,7 +578,7 @@ $role_names = [
             }
         });
 
-        // ระบบค้นหา Table
+        
         $(".search-name").on("keyup", function() {
             var value = $(this).val().toLowerCase();
             var visibleRows = 0;
@@ -597,9 +597,9 @@ $role_names = [
             }
         });
 
-        // -------------------------------------------------------------
-        // ระบบอัปเดตสถานะสมาชิกผ่าน AJAX
-        // -------------------------------------------------------------
+        
+        
+        
         $(document).on('change', '.status-select', function() {
             var userId = $(this).data('user-id');
             var newStatus = $(this).val();
@@ -613,10 +613,10 @@ $role_names = [
                     status: newStatus
                 },
                 success: function(response) {
-                    // ลบคลาสสีเก่าออก
+                    
                     selectElement.removeClass('bg-success bg-danger bg-warning text-white text-dark');
                     
-                    // เพิ่มคลาสสีใหม่ตามสถานะ
+                    
                     if (newStatus === 'member') {
                         selectElement.addClass('bg-success text-white');
                     } else if (newStatus === 'no_member') {
@@ -625,9 +625,9 @@ $role_names = [
                         selectElement.addClass('bg-warning text-dark');
                     }
                     
-                    // แสดงแจ้งเตือน (ลบออกได้ถ้าไม่อยากให้ป๊อปอัพเด้งทุกครั้ง)
-                    // $("#alertMessage").text("อัปเดตสถานะสำเร็จ");
-                    // $("#alertModal").modal("show");
+                    
+                    
+                    
                 },
                 error: function() {
                     alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
@@ -635,7 +635,7 @@ $role_names = [
             });
         });
 
-        // ระบบลบข้อมูล AJAX
+        
         let deleteUserId = null;
 
         $(".delete-btn").click(function(e) {

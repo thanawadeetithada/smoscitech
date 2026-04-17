@@ -2,7 +2,7 @@
 session_start();
 include 'db.php';
 
-// กำหนดสิทธิ์ผู้เข้าถึง (คงไว้ตามเดิมของคุณ)
+
 $allowed_roles = ['club_president'];
 
 if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_roles)) {
@@ -10,19 +10,19 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-// --- ดึงข้อมูลรูปโปรไฟล์สำหรับ Top Navbar ---
+
 $user_id = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
 $res_profile = $stmt_profile->get_result();
 $user_data = $res_profile->fetch_assoc();
-// ถ้าไม่มีรูปให้ใช้ default.png
+
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $stmt_profile->close();
-// ---------------------------------------------------------
 
-// --- ข้อมูลจริงจากโค้ดเดิม ---
+
+
 $sql = "SELECT a.*, 
         (SELECT SUM(capacity) FROM activity_tasks WHERE activity_id = a.activity_id) as total_capacity,
         (SELECT COUNT(*) FROM activity_registrations WHERE activity_id = a.activity_id AND registration_status != 'cancelled') as current_registrations
@@ -438,7 +438,7 @@ $result = $conn->query($sql);
                                 $filter_text = 'Finished';
                             }
 
-                            // กำหนดสีพื้นหลัง Default ให้สอดคล้องกับธีมหลัก
+                            
                             $gradients = [
                                 'linear-gradient(45deg, #A37E5E, #C7A68C)',
                                 'linear-gradient(45deg, #8E7057, #B4967C)',
@@ -499,13 +499,13 @@ $result = $conn->query($sql);
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Toggle Sidebar สำหรับมือถือ
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // ปิด Sidebar หากคลิกพื้นที่อื่นบนหน้าจอ
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {
@@ -514,7 +514,7 @@ $result = $conn->query($sql);
             }
         });
 
-        // ระบบค้นหาและ Filter ข้อมูล
+        
         const searchInput = document.getElementById('searchInput');
         const statusFilter = document.getElementById('statusFilter');
         const activityItems = document.querySelectorAll('.activity-item');

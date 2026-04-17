@@ -9,7 +9,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-// --- ดึงข้อมูลรูปโปรไฟล์และชื่อสำหรับ Top Navbar ---
+
 $user_id_logged = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image, first_name FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id_logged);
@@ -19,7 +19,7 @@ $user_data = $res_profile->fetch_assoc();
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $first_name = !empty($user_data['first_name']) ? $user_data['first_name'] : 'ผู้ใช้งาน';
 $stmt_profile->close();
-// ---------------------------------------------------------
+
 
 $current_activity_id = isset($_GET['id']) ? $_GET['id'] : '';
 
@@ -621,7 +621,7 @@ if (!empty($reg_ids)) {
     
     <script>
     $(document).ready(function() {
-        // Mobile Sidebar Toggle
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');

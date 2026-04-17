@@ -15,11 +15,11 @@ $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
 $res_profile = $stmt_profile->get_result();
 $user_data = $res_profile->fetch_assoc();
-// ถ้าไม่มีรูปให้ใช้ default.png
+
 $profile_image = (!empty($user_data['profile_image']) && $user_data['profile_image'] != 'default.png') ? $user_data['profile_image'] : 'default.png';
 $stmt_profile->close();
 
-// ดึงข้อมูลจริงจากฐานข้อมูลสำหรับตาราง E-portfolio
+
 $stmt = $conn->prepare("SELECT user_id, idstudent, email, first_name, last_name, userrole, department, academic_year, year_level 
                         FROM users WHERE deleted_at IS NULL ORDER BY first_name ASC");
 $stmt->execute();
@@ -318,7 +318,7 @@ while($y = $year_query->fetch_assoc()) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Toggle Sidebar สำหรับมือถือ
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
@@ -332,9 +332,9 @@ while($y = $year_query->fetch_assoc()) {
             }
         });
 
-        // -------------------------------------------------------------
-        // ระบบค้นหา + ตัวกรอง + Pagination แบบรวมศูนย์
-        // -------------------------------------------------------------
+        
+        
+        
         let currentPage = 1;
         const rowsPerPage = 10;
         let filteredRows = [];
@@ -346,7 +346,7 @@ while($y = $year_query->fetch_assoc()) {
 
             filteredRows = [];
 
-            // ตรวจสอบเงื่อนไขทุกแถว
+            
             $(".member-row").each(function() {
                 const rowText = $(this).text().toLowerCase();
                 const rowYear = String($(this).data("year") || '');
@@ -359,10 +359,10 @@ while($y = $year_query->fetch_assoc()) {
                 if (matchSearch && matchYear && matchDept) {
                     filteredRows.push(this);
                 }
-                $(this).hide(); // ซ่อนทั้งหมดไว้ก่อน
+                $(this).hide(); 
             });
 
-            // กลับไปหน้า 1 เสมอเมื่อมีการค้นหาหรือเปลี่ยนตัวกรอง
+            
             displayPage(1);
         }
 
@@ -377,18 +377,18 @@ while($y = $year_query->fetch_assoc()) {
             const start = (currentPage - 1) * rowsPerPage;
             const end = start + rowsPerPage;
 
-            // แสดงเฉพาะแถวในหน้าที่เลือก
+            
             $(".member-row").hide();
             $(filteredRows).slice(start, end).show();
 
-            // จัดการข้อความหน้า
+            
             $("#pageIndicator").text(`หน้า ${currentPage} / ${totalPages}`);
 
-            // จัดการปุ่ม
+            
             $("#btnPrev").prop("disabled", currentPage === 1);
             $("#btnNext").prop("disabled", currentPage === totalPages || filteredRows.length === 0);
 
-            // แสดงคำว่าไม่พบข้อมูล
+            
             if (filteredRows.length === 0) {
                 $("#noDataRow").show();
             } else {
@@ -396,15 +396,15 @@ while($y = $year_query->fetch_assoc()) {
             }
         }
 
-        // จับ Event ปุ่มเปลี่ยนหน้า
+        
         $("#btnPrev").click(function() { displayPage(currentPage - 1); });
         $("#btnNext").click(function() { displayPage(currentPage + 1); });
 
-        // จับ Event การค้นหาและเปลี่ยนตัวกรอง
+        
         $(".search-name").on("keyup", updateTable);
         $("#filterAcademicYear, #filterDepartment").on("change", updateTable);
 
-        // โหลดข้อมูลครั้งแรก
+        
         updateTable();
     });
     </script>

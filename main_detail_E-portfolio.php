@@ -2,16 +2,16 @@
 session_start();
 include 'db.php';
 
-// ตัดโค้ดส่วนที่เช็ค $_SESSION['user_id'] ของ Admin ออกไป เพราะหน้านี้เปิดให้ทุกคนเข้าดูได้
+
 
 $target_user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
 if ($target_user_id === 0) {
-    // ถ้าไม่มีการส่ง ID มา ให้เด้งกลับไปหน้า E-portfolio สาธารณะ
+    
     header("Location: main_e-portfolio.php");
     exit();
 }
 
-// 1. ดึงข้อมูลผู้ใช้งานจริง (นักศึกษาที่ถูกดู E-Portfolio)
+
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $target_user_id);

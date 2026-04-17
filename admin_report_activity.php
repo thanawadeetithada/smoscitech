@@ -15,11 +15,11 @@ $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
 $res_profile = $stmt_profile->get_result();
 $user_data = $res_profile->fetch_assoc();
-// ถ้าไม่มีรูปให้ใช้ default.png
+
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $stmt_profile->close();
 
-// ดึงข้อมูลกิจกรรมและจำนวนผู้ลงทะเบียนจริงจาก Database
+
 $sql_chart = "SELECT a.title, COUNT(ar.registration_id) as total_reg 
               FROM activities a 
               LEFT JOIN activity_registrations ar ON a.activity_id = ar.activity_id 
@@ -490,13 +490,13 @@ if ($result_chart && $result_chart->num_rows > 0) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Toggle Sidebar สำหรับมือถือ
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // ปิด Sidebar หากคลิกพื้นที่อื่นบนหน้าจอ
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')
@@ -519,13 +519,13 @@ if ($result_chart && $result_chart->num_rows > 0) {
                 datasets: [{
                         label: 'จำนวนจริง',
                         data: dataCounts,
-                        backgroundColor: '#00004d', // น้ำเงินเข้มตามรูป
+                        backgroundColor: '#00004d', 
                         barPercentage: 0.6,
                     },
                     {
                         label: 'เป้าหมาย',
-                        data: dataCounts.map(v => v + 5), // จำลองแท่งคู่ตามรูป
-                        backgroundColor: '#FEE799', // เหลืองทองตามรูป
+                        data: dataCounts.map(v => v + 5), 
+                        backgroundColor: '#FEE799', 
                         barPercentage: 0.6,
                     }
                 ]

@@ -448,7 +448,7 @@ $result = $stmt->get_result();
 
             <main class="content-area">
                 <?php
-                // เตรียมข้อมูลแยกกลุ่ม
+                
                 $registered_activities = [];
                 $unregistered_activities = [];
 

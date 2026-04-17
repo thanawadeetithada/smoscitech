@@ -2,7 +2,7 @@
 session_start();
 require 'db.php';
 
-// ป้องกันคนนอกยิง API เข้ามาตรงๆ
+
 if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
     echo "Unauthorized: ยังไม่ได้เข้าสู่ระบบ";

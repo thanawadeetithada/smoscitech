@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// --- ดึงข้อมูลรูปโปรไฟล์และชื่อสำหรับ Top Navbar ---
+
 $stmt_profile = $conn->prepare("SELECT profile_image, first_name FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
@@ -18,7 +18,7 @@ $user_data = $res_profile->fetch_assoc();
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $first_name = !empty($user_data['first_name']) ? $user_data['first_name'] : 'ผู้ใช้งาน';
 $stmt_profile->close();
-// ---------------------------------------------------------
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_evidence'])) {
     $reg_id = intval($_POST['registration_id']);
@@ -496,7 +496,7 @@ if (!empty($reg_ids)) {
                                 $badge_text = '<i class="fa-solid fa-times-circle me-1"></i> ไม่ผ่านกิจกรรม';
                             }
 
-                            // กำหนดรูปปกหรือ Gradient
+                            
                             $cover_img = !empty($act['cover_image']) ? 'uploads/covers/' . $act['cover_image'] : '';
                             $gradients = [
                                 'linear-gradient(45deg, rgba(163, 126, 94, 0.9), rgba(199, 166, 140, 0.9))',
@@ -698,20 +698,20 @@ if (!empty($reg_ids)) {
     
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Show Status Modal if present
+        
         var statusModalEl = document.getElementById('statusModal');
         if (statusModalEl) {
             var myModal = new bootstrap.Modal(statusModalEl);
             myModal.show();
         }
 
-        // Mobile Sidebar Toggle
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // Click outside to close sidebar
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {

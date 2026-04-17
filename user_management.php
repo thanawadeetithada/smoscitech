@@ -11,7 +11,7 @@ $user_id = $_SESSION['user_id'];
 $message = '';
 $msg_type = '';
 
-// --- Logic การ Update ---
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
     $idstudent = trim($_POST['idstudent'] ?? '');
     $first_name = trim($_POST['first_name'] ?? '');
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
     $stmt_check->close();
 }
 
-// ดึงข้อมูลจริงจาก DB
+
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $user_id);
@@ -68,7 +68,7 @@ $stmt_user->execute();
 $user_data = $stmt_user->get_result()->fetch_assoc();
 $stmt_user->close();
 
-// กำหนดตัวแปรรูปโปรไฟล์สำหรับแสดงบน Navbar
+
 $profile_image_navbar = !empty($user_data['profile_image']) && $user_data['profile_image'] !== 'default.png' 
                         ? $user_data['profile_image'] 
                         : 'default.png';
@@ -451,7 +451,7 @@ $profile_image_navbar = !empty($user_data['profile_image']) && $user_data['profi
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Script สำหรับพรีวิวรูปภาพ
+        
         function previewImg(e){
             var reader = new FileReader();
             reader.onload = function(){
@@ -461,13 +461,13 @@ $profile_image_navbar = !empty($user_data['profile_image']) && $user_data['profi
         }
 
         $(document).ready(function() {
-            // Toggle Sidebar สำหรับมือถือ
+            
             $('#mobileMenuBtn').on('click', function(e) {
                 e.stopPropagation();
                 $('.sidebar').toggleClass('active');
             });
 
-            // ปิด Sidebar หากคลิกพื้นที่อื่นบนหน้าจอ (เฉพาะในหน้าจอมือถือ)
+            
             $(document).on('click', function(e) {
                 if ($(window).width() <= 768) {
                     if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {

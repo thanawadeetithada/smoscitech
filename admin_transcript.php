@@ -9,19 +9,19 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-// --- ดึงข้อมูลรูปโปรไฟล์ (แบบเดียวกับ admin_report_activity.php) ---
+
 $user_id = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
 $res_profile = $stmt_profile->get_result();
 $user_data = $res_profile->fetch_assoc();
-// ถ้าไม่มีรูปให้ใช้ default.png
+
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $stmt_profile->close();
-// ---------------------------------------------------------
 
-// ดึงข้อมูลจริงจากฐานข้อมูลสำหรับตาราง E-portfolio
+
+
 $stmt = $conn->prepare("SELECT user_id, idstudent, email, first_name, last_name, userrole, department, academic_year, year_level 
                         FROM users WHERE deleted_at IS NULL");
 $stmt->execute();
@@ -471,13 +471,13 @@ while($y = $year_query->fetch_assoc()) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Toggle Sidebar สำหรับมือถือ
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // ปิด Sidebar หากคลิกพื้นที่อื่นบนหน้าจอ (เฉพาะในหน้าจอมือถือ)
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')
@@ -487,7 +487,7 @@ while($y = $year_query->fetch_assoc()) {
             }
         });
 
-        // ระบบค้นหาและตัวกรอง Table (นำมาจากของเดิม)
+        
         function filterTable() {
             var searchTerm = $(".search-name").val().toLowerCase();
             var academicYear = $("#filterAcademicYear").val();

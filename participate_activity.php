@@ -15,7 +15,7 @@ if ($activity_id === 0) {
     exit();
 }
 
-// --- ดึงข้อมูลรูปโปรไฟล์และชื่อสำหรับ Top Navbar ---
+
 $stmt_profile = $conn->prepare("SELECT profile_image, first_name FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
@@ -24,7 +24,7 @@ $user_data = $res_profile->fetch_assoc();
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $first_name = !empty($user_data['first_name']) ? $user_data['first_name'] : 'ผู้ใช้งาน';
 $stmt_profile->close();
-// ---------------------------------------------------------
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['join_activity'])) {
     $task_id = $_POST['task_id'];
@@ -563,14 +563,14 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Show Modal if Session Exists
+        
         var statusModalEl = document.getElementById('statusModal');
         if (statusModalEl) {
             var myModal = new bootstrap.Modal(statusModalEl);
             myModal.show();
         }
 
-        // Mobile Sidebar Toggle
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');

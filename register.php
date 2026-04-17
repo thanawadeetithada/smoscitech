@@ -16,7 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $department = $_POST['department'];
     $year_level = $_POST['year_level'];
     
-    // กำหนดค่าเริ่มต้นสำหรับสมาชิกใหม่
+    
     $userrole = 'club_member'; 
     $membership_status = 'pending'; 
 
@@ -51,13 +51,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($error_message)) {
         $hashed = password_hash($password, PASSWORD_DEFAULT);
         
-        // 2. แก้ไข SQL: เพิ่มคอลัมน์ phone และจัดลำดับ ? ให้ครบ 12 ตัว
+        
         $sql = "INSERT INTO users (first_name, last_name, email, idstudent, phone, password, academic_year, year_level, department, profile_image, userrole, membership_status) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $conn->prepare($sql);
         
-        // 3. แก้ไข bind_param: เปลี่ยนเป็น "ssssssssssss" (s ทั้งหมด 12 ตัว) และใส่ตัวแปรให้ครบตามลำดับ SQL
+        
         $stmt->bind_param("ssssssssssss", 
             $first_name, 
             $last_name, 

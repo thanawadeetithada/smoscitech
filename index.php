@@ -460,18 +460,18 @@ ob_end_flush();
 
     <script>
     $(document).ready(function() {
-        // ตรวจสอบเงื่อนไขจาก PHP เพื่อแสดง Modal อนุมัติ
+        
         <?php if ($show_approval_modal): ?>
             $('#approvalModal').modal('show');
         <?php endif; ?>
 
-        // Toggle Sidebar สำหรับมือถือ
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // ปิด Sidebar หากคลิกพื้นที่อื่นบนหน้าจอ (เฉพาะในหน้าจอมือถือ)
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {

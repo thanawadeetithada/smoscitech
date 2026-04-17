@@ -10,7 +10,7 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
 
 $can_edit = ($_SESSION['userrole'] === 'club_president');
 
-// --- ดึงข้อมูลรูปโปรไฟล์และชื่อสำหรับ Top Navbar ---
+
 $user_id_logged = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image, first_name FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id_logged);
@@ -20,7 +20,7 @@ $user_data = $res_profile->fetch_assoc();
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $first_name = !empty($user_data['first_name']) ? $user_data['first_name'] : 'ผู้ใช้งาน';
 $stmt_profile->close();
-// ---------------------------------------------------------
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
     header('Content-Type: application/json');
@@ -582,7 +582,7 @@ $registrations = $stmt_reg->get_result();
     
     <script>
     $(document).ready(function() {
-        // Mobile Sidebar Toggle
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
@@ -598,7 +598,7 @@ $registrations = $stmt_reg->get_result();
     });
 
     <?php if($can_edit): ?>
-    // Modal action prep
+    
     function prepareDelete(id) {
         const myModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
         document.getElementById('confirmDeleteBtn').href = 'process_delete_activity.php?id=' + id;
@@ -611,20 +611,20 @@ $registrations = $stmt_reg->get_result();
         myModal.show();
     }
 
-    // AJAX for Select Status Change
+    
     document.querySelectorAll('.status-select').forEach(select => {
         select.addEventListener('change', function() {
             const selectElement = this;
             const regId = selectElement.dataset.regId;
             const newStatus = selectElement.value;
 
-            // Update Color Class instantly for better UX
+            
             selectElement.classList.remove('status-pending', 'status-approved', 'status-rejected');
             if (newStatus === 'pending') selectElement.classList.add('status-pending');
             else if (newStatus === 'approved') selectElement.classList.add('status-approved');
             else if (newStatus === 'rejected') selectElement.classList.add('status-rejected');
 
-            // Send Request
+            
             const formData = new URLSearchParams();
             formData.append('action', 'update_status');
             formData.append('reg_id', regId);

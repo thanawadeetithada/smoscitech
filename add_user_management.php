@@ -9,17 +9,17 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
     exit();
 }
 
-// --- ดึงข้อมูลรูปโปรไฟล์สำหรับ Top Navbar ---
+
 $user_id_session = $_SESSION['user_id'];
 $stmt_profile_nav = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
 $stmt_profile_nav->bind_param("i", $user_id_session);
 $stmt_profile_nav->execute();
 $res_profile_nav = $stmt_profile_nav->get_result();
 $user_data_nav = $res_profile_nav->fetch_assoc();
-// ถ้าไม่มีรูปให้ใช้ default.png
+
 $profile_image_nav = !empty($user_data_nav['profile_image']) ? $user_data_nav['profile_image'] : 'default.png';
 $stmt_profile_nav->close();
-// ---------------------------------------------------------
+
 
 $error_message = "";
 $registration_success = false;
@@ -30,7 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $last_name = $_POST['last_name'];
     $idstudent = $_POST['idstudent'];
     $email = $_POST['email'];
-    $phone = $_POST['phone']; // เพิ่มรับค่า phone
+    $phone = $_POST['phone']; 
     $password = $_POST['password'];
     $confirmpassword = $_POST['confirmpassword'];
     $academic_year = $_POST['academic_year'];
@@ -680,13 +680,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <script>
     $(document).ready(function() {
-        // Toggle Sidebar สำหรับมือถือ
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // ปิด Sidebar หากคลิกพื้นที่อื่นบนหน้าจอ (มือถือ)
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')

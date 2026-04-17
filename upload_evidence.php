@@ -10,17 +10,17 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $registration_id = isset($_GET['reg_id']) ? intval($_GET['reg_id']) : 0;
 
-// หากมีการส่งฟอร์มข้อมูลหลัก
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // ==========================================
-    // 1. จัดการลบรูปภาพที่ถูกกด (X) ไว้ (ถ้ามี)
-    // ==========================================
+    
+    
+    
     if (isset($_POST['images_to_delete']) && is_array($_POST['images_to_delete'])) {
         foreach ($_POST['images_to_delete'] as $del_id) {
             $del_id = intval($del_id);
             
-            // ดึงชื่อไฟล์เพื่อนำไปลบออกจากโฟลเดอร์ uploads
+            
             $stmt_del_sel = $conn->prepare("SELECT image_path FROM activity_evidences WHERE evidence_id = ? AND registration_id = ?");
             $stmt_del_sel->bind_param("ii", $del_id, $registration_id);
             $stmt_del_sel->execute();
@@ -28,12 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($row_del = $res_del->fetch_assoc()) {
                 $file_to_delete = 'uploads/evidences/' . $row_del['image_path'];
-                // ตรวจสอบและลบไฟล์จริงออกจากเครื่อง server
+                
                 if ($row_del['image_path'] != '' && file_exists($file_to_delete) && is_file($file_to_delete)) {
                     unlink($file_to_delete); 
                 }
                 
-                // ลบข้อมูลแถวนี้ออกจากฐานข้อมูล
+                
                 $stmt_del = $conn->prepare("DELETE FROM activity_evidences WHERE evidence_id = ?");
                 $stmt_del->bind_param("i", $del_id);
                 $stmt_del->execute();
@@ -41,17 +41,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // ==========================================
-    // 2. การบันทึกคำอธิบาย และ อัปโหลดไฟล์
-    // ==========================================
+    
+    
+    
     $description = $_POST['description'] ?? '';
     
-    // อัปเดต Description สำหรับข้อมูลเดิมที่มีอยู่แล้ว
+    
     $update_desc = $conn->prepare("UPDATE activity_evidences SET description = ? WHERE registration_id = ?");
     $update_desc->bind_param("si", $description, $registration_id);
     $update_desc->execute();
 
-    // จัดการการอัปโหลดไฟล์ใหม่ (อัปโหลดได้หลายไฟล์)
+    
     if (!empty($_FILES['evidence_files']['name'][0])) {
         $upload_dir = 'uploads/evidences/';
         
@@ -79,8 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } else {
-        // เช็คว่าหลังจากลบ/อัปเดตไปแล้ว ยังมีข้อมูล record ของ registration_id นี้เหลือไหม 
-        // ถ้าถูกลบไปหมดแล้ว ให้สร้าง record เปล่าเพื่อเก็บแค่ Description อย่างเดียว
+        
+        
         $check_ev = $conn->prepare("SELECT evidence_id FROM activity_evidences WHERE registration_id = ?");
         $check_ev->bind_param("i", $registration_id);
         $check_ev->execute();
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit();
 }
 
-// --- ดึงข้อมูลรูปโปรไฟล์และชื่อสำหรับ Top Navbar ---
+
 $stmt_profile = $conn->prepare("SELECT profile_image, first_name FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
@@ -107,7 +107,7 @@ $user_data = $res_profile->fetch_assoc();
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $first_name = !empty($user_data['first_name']) ? $user_data['first_name'] : 'ผู้ใช้งาน';
 
-// --- ดึงข้อมูลกิจกรรมและ Description หลัก ---
+
 $stmt = $conn->prepare("
     SELECT a.title, e.description 
     FROM activity_registrations ar
@@ -125,7 +125,7 @@ if (!$activity_data) {
     exit();
 }
 
-// --- ดึงข้อมูลรูปภาพเดิมที่เคยอัปโหลดไว้แล้ว ---
+
 $stmt_imgs = $conn->prepare("SELECT evidence_id, image_path FROM activity_evidences WHERE registration_id = ? AND image_path != ''");
 $stmt_imgs->bind_param("i", $registration_id);
 $stmt_imgs->execute();
@@ -164,7 +164,7 @@ $existing_images = $stmt_imgs->get_result();
         min-height: 100vh;
     }
 
-    /* === Navbar & Sidebar === */
+    
     .top-navbar {
         background-color: var(--top-bar-bg);
         min-height: 80px;
@@ -347,7 +347,7 @@ $existing_images = $stmt_imgs->get_result();
         width: 100%;
     }
 
-    /* === Custom File Upload Styles === */
+    
     .file-upload-input {
         display: none;
     }
@@ -392,7 +392,7 @@ $existing_images = $stmt_imgs->get_result();
         object-fit: cover;
     }
 
-    /* === สไตล์สำหรับปุ่มลบรูปภาพ === */
+    
     .btn-delete-img {
         position: absolute;
         top: 5px;
@@ -615,13 +615,13 @@ $existing_images = $stmt_imgs->get_result();
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Toggle Sidebar สำหรับมือถือ
+        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        // ปิด Sidebar เมื่อคลิกพื้นที่ว่าง
+        
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn').length) {
@@ -630,7 +630,7 @@ $existing_images = $stmt_imgs->get_result();
             }
         });
 
-        // JavaScript สำหรับ Preview รูปภาพที่เลือกใหม่
+        
         const fileInput = document.getElementById('evidence_files');
         const previewArea = document.getElementById('new_preview_area');
 
@@ -665,17 +665,17 @@ $existing_images = $stmt_imgs->get_result();
     });
 
     function markForDeletion(btnElement, evidenceId) {
-        // 1. ซ่อนกล่องรูปภาพนั้นไม่ให้ผู้ใช้เห็นทันทีที่กด
+        
         const imgBox = btnElement.closest('.preview-img-box');
         imgBox.style.display = 'none';
 
-        // 2. สร้าง input type="hidden" ส่งไปพร้อมกับฟอร์มเพื่อบอก PHP ว่าต้องการลบรูปไหน
+        
         const hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';
         hiddenInput.name = 'images_to_delete[]';
         hiddenInput.value = evidenceId;
         
-        // 3. เอา input ไปแปะไว้ในฟอร์มหลัก
+        
         document.getElementById('mainUploadForm').appendChild(hiddenInput);
     }
     </script>
