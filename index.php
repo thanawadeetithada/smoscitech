@@ -175,44 +175,6 @@ ob_end_flush();
         flex: 1;
         position: relative;
     }
-
-    
-    .sidebar {
-        width: 240px;
-        background-color: var(--sidebar-bg);
-        display: flex;
-        flex-direction: column;
-        border-right: 1px solid rgba(0, 0, 0, 0.05);
-        transition: 0.3s ease-in-out;
-        z-index: 99;
-    }
-
-    .sidebar-item {
-        background: white;
-        padding: 25px 15px;
-        text-align: center;
-        border-bottom: 1px solid #eee;
-        text-decoration: none;
-        color: #333;
-        transition: all 0.3s ease;
-    }
-
-    .sidebar-item:hover {
-        background: #FDFDFD;
-        transform: translateX(5px);
-    }
-
-    .sidebar-item i {
-        font-size: 32px;
-        margin-bottom: 8px;
-        display: block;
-    }
-
-    .sidebar-item span {
-        font-size: 13px;
-        font-weight: 700;
-    }
-
     
     .content {
         flex: 1;
@@ -307,18 +269,6 @@ ob_end_flush();
 
     
     @media (max-width: 768px) {
-        .sidebar {
-            position: absolute;
-            top: 0;
-            left: -240px;
-            height: 100%;
-            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar.active {
-            left: 0;
-        }
-
         .top-navbar {
             padding: 10px 15px;
         }
@@ -352,17 +302,6 @@ ob_end_flush();
         </nav>
 
         <div class="main-container">
-            <aside class="sidebar">
-                <a href="main_report_activity.php" class="sidebar-item mt-3 mb-3">
-                    <i class="fa-solid fa-chart-line"></i>
-                    <span>สถิติการเข้าร่วมกิจกรรม</span>
-                </a>
-                <a href="main_e-portfolio.php" class="sidebar-item mb-3">
-                    <i class="fa-solid fa-book-open"></i>
-                    <span>รายงาน E-portfolio</span>
-                </a>
-                <div style="flex:1;"></div>
-            </aside>
 
             <main class="content">
                 <div class="login-card">

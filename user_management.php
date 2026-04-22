@@ -287,7 +287,7 @@ $profile_image_navbar = !empty($user_data['profile_image']) && $user_data['profi
                 <div class="logout-area">
                     <a href="user_management.php">
                         <img src="uploads/profiles/<?php echo htmlspecialchars($profile_image_navbar); ?>" alt="Profile"
-                             style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                             style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     </a>
                     <a href="logout.php" class="logout-text mt-1">Log out</a>
                 </div>
@@ -414,7 +414,7 @@ $profile_image_navbar = !empty($user_data['profile_image']) && $user_data['profi
                         <select name="department" class="form-select">
                             <option value="">-- เลือกสาขาวิชา --</option>
                             <?php 
-                                $departments = ["วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "นวัตกรรมและธุรกิจอาหาร", "สาธารณสุขศาสตร์", "เคมี (วท.บ.)", "วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม", "ฟิสิกส์", "เคมี (ค.บ.)", "ชีววิทยา", "คณิตศาสตร์ประยุกต์"];
+                                $departments = ["วิทยาการคอมพิวเตอร์", "เทคโนโลยีสารสนเทศ", "นวัตกรรมและธุรกิจอาหาร", "สาธารณสุขศาสตร์", "เคมี (วท.บ.)", "วิทยาศาสตร์และเทคโนโลยีสิ่งแวดล้อม", "ฟิสิกส์", "เคมี (ค.บ.)", "ชีววิทยา", "คณิตศาสตร์ประยุกต์", "อื่นๆ"];
                                 $current_dept = trim($user_data['department'] ?? '');
                                 
                                 foreach ($departments as $dept) {
@@ -433,6 +433,7 @@ $profile_image_navbar = !empty($user_data['profile_image']) && $user_data['profi
                             <option value="ชั้นปีที่ 2" <?php echo ($current_year === 'ชั้นปีที่ 2') ? 'selected' : ''; ?>>ชั้นปีที่ 2</option>
                             <option value="ชั้นปีที่ 3" <?php echo ($current_year === 'ชั้นปีที่ 3') ? 'selected' : ''; ?>>ชั้นปีที่ 3</option>
                             <option value="ชั้นปีที่ 4" <?php echo ($current_year === 'ชั้นปีที่ 4') ? 'selected' : ''; ?>>ชั้นปีที่ 4</option>
+                            <option value="อื่นๆ" <?php echo ($current_year === 'อื่นๆ') ? 'selected' : ''; ?>>อื่นๆ</option>
                         </select>
                     </div>
                     <div class="col-md-6">

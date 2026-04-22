@@ -76,7 +76,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
         min-height: 100vh;
     }
 
-    
+
     .top-navbar {
         background-color: var(--top-bar-bg);
         min-height: 80px;
@@ -125,15 +125,15 @@ if ($result_chart && $result_chart->num_rows > 0) {
         color: black;
     }
 
-    
+
     .main-wrapper {
         display: flex;
         flex: 1;
         position: relative;
-        
+
     }
 
-    
+
     .sidebar {
         width: 230px;
         background-color: var(--yellow-sidebar);
@@ -173,7 +173,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
         font-size: 13px;
     }
 
-    
+
     .content-area {
         flex-grow: 1;
         padding: 70px 40px;
@@ -200,7 +200,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
         font-size: 18px;
     }
 
-    
+
     .search-wrap {
         display: flex;
         justify-content: flex-end;
@@ -224,7 +224,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
         width: 100%;
     }
 
-    
+
     .custom-table {
         width: 100%;
         border-collapse: separate;
@@ -274,7 +274,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
         font-size: 14px;
     }
 
-    
+
     @media (max-width: 768px) {
         .sidebar {
             position: absolute;
@@ -384,7 +384,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
                 <div class="logout-area">
                     <a href="user_management.php"><img
                             src="uploads/profiles/<?php echo htmlspecialchars($profile_image); ?>" alt="Profile"
-                            style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"></a>
+                            style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"></a>
                     <a href="logout.php" class="logout-text mt-1">Log out</a>
                 </div>
             </div>
@@ -403,22 +403,24 @@ if ($result_chart && $result_chart->num_rows > 0) {
 
                 <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'academic_officer'): ?>
                 <a href="admin_user_management.php" class="sidebar-item mb-3">
-                     <i class="fa-solid fa-users"></i>
-                   <span>ข้อมูลสมาชิกสโมสร / นายกสโมสร / รองนายกสโมสร </span>
+                    <i class="fa-solid fa-users"></i>
+                    <span>ข้อมูลสมาชิกสโมสร / นายกสโมสร / รองนายกสโมสร </span>
                 </a>
                 <?php endif; ?>
 
                 <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
                 <a href="admin_user_management.php" class="sidebar-item mb-3">
-                     <i class="fa-solid fa-users"></i>
-                   <span>ข้อมูลสมาชิกสโมสร</span>
+                    <i class="fa-solid fa-users"></i>
+                    <span>ข้อมูลสมาชิกสโมสร</span>
                 </a>
                 <?php endif; ?>
 
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] !== 'executive'): ?>
                 <a href="admin_activity.php" class="sidebar-item mb-3">
                     <i class="fa-solid fa-cubes"></i>
                     <span>ข้อมูลกิจกรรม</span>
                 </a>
+                <?php endif; ?>
 
                 <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
                 <a href="admin_score_activity.php" class="sidebar-item mb-3">
@@ -426,6 +428,7 @@ if ($result_chart && $result_chart->num_rows > 0) {
                     <span>ข้อมูลการเข้าร่วมกิจกรรม</span>
                 </a>
                 <?php endif; ?>
+
                 <?php if (isset($_SESSION['userrole']) && in_array($_SESSION['userrole'], ['academic_officer', 'club_president'])): ?>
                 <a href="admin_transcript.php" class="sidebar-item">
                     <i class="fa-solid fa-file-lines"></i>
@@ -490,13 +493,13 @@ if ($result_chart && $result_chart->num_rows > 0) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
-        
+
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
         });
 
-        
+
         $(document).on('click', function(e) {
             if ($(window).width() <= 768) {
                 if (!$(e.target).closest('.sidebar').length && !$(e.target).closest('#mobileMenuBtn')
@@ -519,13 +522,13 @@ if ($result_chart && $result_chart->num_rows > 0) {
                 datasets: [{
                         label: 'จำนวนจริง',
                         data: dataCounts,
-                        backgroundColor: '#00004d', 
+                        backgroundColor: '#00004d',
                         barPercentage: 0.6,
                     },
                     {
                         label: 'เป้าหมาย',
-                        data: dataCounts.map(v => v + 5), 
-                        backgroundColor: '#FEE799', 
+                        data: dataCounts.map(v => v + 5),
+                        backgroundColor: '#FEE799',
                         barPercentage: 0.6,
                     }
                 ]

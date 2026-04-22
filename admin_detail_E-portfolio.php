@@ -746,7 +746,7 @@ $stmt_act->close();
                 <div class="logout-area">
                     <a href="user_management.php">
                         <img src="uploads/profiles/<?php echo htmlspecialchars($admin_profile_image); ?>" alt="Profile"
-                            style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                            style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     </a>
                     <a href="logout.php" class="logout-text mt-1">Log out</a>
                 </div>
@@ -778,10 +778,12 @@ $stmt_act->close();
                 </a>
                 <?php endif; ?>
 
+                <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] !== 'executive'): ?>
                 <a href="admin_activity.php" class="sidebar-item mb-3">
                     <i class="fa-solid fa-cubes"></i>
                     <span>ข้อมูลกิจกรรม</span>
                 </a>
+                <?php endif; ?>
 
                 <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'club_president'): ?>
                 <a href="admin_score_activity.php" class="sidebar-item mb-3">
@@ -952,9 +954,11 @@ $stmt_act->close();
     </div>
 
     <div class="btn-group-fixed d-print-none">
+        <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] !== 'executive'): ?>
         <button type="button" onclick="window.print()" class="btn-pill" style="background:#2C3E50;">
             <i class="fa-solid fa-print me-2"></i>Export PDF
         </button>
+        <?php endif; ?>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -974,6 +978,16 @@ $stmt_act->close();
                 }
             }
         });
+
+        <?php if (isset($_SESSION['userrole']) && $_SESSION['userrole'] === 'executive'): ?>
+        $(window).bind('keydown', function(event) {
+            if ((event.ctrlKey || event.metaKey) && event.which == 80) { // 80 คือ keycode ของ P
+                alert('คุณไม่มีสิทธิ์ในการพิมพ์หรือ Export ไฟล์นี้');
+                event.preventDefault();
+                return false;
+            }
+        });
+        <?php endif; ?>
     });
     </script>
 </body>
