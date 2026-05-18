@@ -9,7 +9,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-
 $sql_user = "SELECT * FROM users WHERE user_id = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param("i", $user_id);
@@ -20,13 +19,11 @@ $stmt_user->close();
 $first_name = $user_profile['first_name'] ?? 'ผู้ใช้งาน';
 $full_name = ($user_profile['first_name'] ?? '') . ' ' . ($user_profile['last_name'] ?? '');
 
-
 $profile_image_file = (!empty($user_profile['profile_image']) && $user_profile['profile_image'] != 'default.png') ? $user_profile['profile_image'] : 'default.png';
 $profile_image_url = 'uploads/profiles/' . $profile_image_file;
 if (!file_exists($profile_image_url) && $profile_image_file !== 'default.png') {
      $profile_image_url = 'https://placehold.co/150x150?text=No+Image';
 }
-
 
 $sql_skills = "SELECT skill_name, skill_level FROM user_skills WHERE user_id = ? ORDER BY skill_level DESC";
 $stmt_skills = $conn->prepare($sql_skills);
@@ -39,7 +36,6 @@ while ($row = $result_skills->fetch_assoc()) {
 }
 $stmt_skills->close();
 
-
 $hard_skills_data = [];
 $sql_hs = "SELECT * FROM user_hard_skills WHERE user_id = ?";
 $stmt_hs = $conn->prepare($sql_hs);
@@ -50,7 +46,6 @@ while ($row = $result_hs->fetch_assoc()) {
     $hard_skills_data[] = $row;
 }
 $stmt_hs->close();
-
 
 $languages_data = [];
 $sql_lang = "SELECT * FROM user_languages WHERE user_id = ?";
@@ -63,7 +58,6 @@ while ($row = $result_lang->fetch_assoc()) {
 }
 $stmt_lang->close();
 
-
 $custom_activities = [];
 $sql_custom = "SELECT * FROM user_custom_activities WHERE user_id = ? ORDER BY id DESC";
 $stmt_custom = $conn->prepare($sql_custom);
@@ -75,15 +69,19 @@ while ($row = $result_custom->fetch_assoc()) {
 }
 $stmt_custom->close();
 
-
 $portfolio_activities = [];
 $sql_act = "SELECT 
-                a.title, a.description, a.start_date, a.end_date, a.hours_count, a.cover_image,
-                t.task_name
+                ar.registration_id,
+                a.title, a.description, a.start_date, a.end_date, a.hours_count,
+                t.task_name,
+                ev.image_path
             FROM activity_registrations ar
             JOIN activities a ON ar.activity_id = a.activity_id
             LEFT JOIN activity_tasks t ON ar.task_id = t.task_id
-            WHERE ar.user_id = ? AND ar.registration_status = 'approved' AND ar.participation_status = 'passed'
+            LEFT JOIN activity_evidences ev ON ar.registration_id = ev.registration_id
+            WHERE ar.user_id = ? 
+            AND ar.registration_status = 'approved' 
+            AND ar.participation_status = 'passed'
             ORDER BY a.start_date DESC";
             
 $stmt_act = $conn->prepare($sql_act);
@@ -91,7 +89,20 @@ $stmt_act->bind_param("i", $user_id);
 $stmt_act->execute();
 $result_act = $stmt_act->get_result();
 while ($row = $result_act->fetch_assoc()) {
-    $portfolio_activities[] = $row;
+    $reg_id = $row['registration_id'];
+    
+    if (!isset($portfolio_activities[$reg_id])) {
+        $portfolio_activities[$reg_id] = [
+            'title' => $row['title'],
+            'task_name' => $row['task_name'],
+            'hours_count' => $row['hours_count'],
+            'images' => []
+        ];
+    }
+    
+    if (!empty($row['image_path'])) {
+        $portfolio_activities[$reg_id]['images'][] = $row['image_path'];
+    }
 }
 $stmt_act->close();
 ?>
@@ -112,14 +123,13 @@ $stmt_act->close();
         --yellow-sidebar: #FEEFB3;
         --light-bg: #F4F6F9;
         --btn-blue: #6358E1;
-
         --theme-dark: #3b3d42;
         --theme-light: #f8fbff;
         --text-dark: #222222;
         --text-muted: #555555;
     }
 
-    body,
+    body, 
     html {
         height: 100%;
         margin: 0;
@@ -128,12 +138,11 @@ $stmt_act->close();
         overflow-x: hidden;
     }
 
-    .wrapper {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
+    .wrapper { 
+        display: flex; 
+        flex-direction: column; 
+        min-height: 100vh; 
     }
-
 
     .top-navbar {
         background-color: var(--top-bar-bg);
@@ -204,13 +213,11 @@ $stmt_act->close();
         display: block;
     }
 
-
     .main-wrapper {
         display: flex;
         flex: 1;
         position: relative;
     }
-
 
     .sidebar {
         width: 230px;
@@ -251,7 +258,6 @@ $stmt_act->close();
         font-size: 13px;
     }
 
-
     .content-area {
         flex-grow: 1;
         padding: 40px;
@@ -287,7 +293,6 @@ $stmt_act->close();
         margin-right: 10px;
         font-size: 14px;
     }
-
 
     .portfolio-left {
         width: 35%;
@@ -363,7 +368,6 @@ $stmt_act->close();
         color: var(--theme-dark);
     }
 
-
     .portfolio-right {
         width: 65%;
         background: #FFFFFF;
@@ -401,22 +405,28 @@ $stmt_act->close();
         border-radius: 50%;
     }
 
+    /* CSS ปรับให้แสดง 3 รูปต่อ 1 แถว */
     .act-grid {
+        display: flex;
+        flex-wrap: wrap; /* ยอมให้ปัดบรรทัดเมื่อเกินขนาด */
         gap: 10px;
         margin-bottom: 15px;
     }
 
     .act-grid img {
-        width: 50%;
-        object-fit: cover;
-        border-radius: 4px;
+        /* คำนวณความกว้าง: (100% - ช่องว่าง 2 ช่องรวมกัน 20px) / 3 รูป */
+        width: calc((100% - 20px) / 3); 
+        height: 160px; /* บังคับความสูงให้เท่ากัน */
+        object-fit: cover; /* ตัดรูปให้สวยงามไม่บิดเบี้ยว */
+        border-radius: 6px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .act-single-img {
         width: 100%;
+        height: 160px;
         object-fit: cover;
-        border-radius: 4px;
+        border-radius: 6px;
         margin-bottom: 15px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
@@ -520,8 +530,9 @@ $stmt_act->close();
             margin-left: 10px;
         }
 
-        .act-grid {
-            grid-template-columns: repeat(2, 1fr);
+        /* เมื่ออยู่บนมือถือ อาจจะปรับให้เหลือ 2 รูปต่อแถว เพื่อไม่ให้รูปเล็กเกินไป */
+        .act-grid img {
+            width: calc((100% - 10px) / 2); 
         }
 
         .btn-group-fixed {
@@ -539,8 +550,7 @@ $stmt_act->close();
             font-family: 'Sarabun', sans-serif;
         }
 
-        body,
-        html {
+        body, html {
             background: white !important;
             margin: 0;
             padding: 0;
@@ -552,9 +562,7 @@ $stmt_act->close();
             print-color-adjust: exact;
         }
 
-        .wrapper,
-        .main-wrapper,
-        .content-area {
+        .wrapper, .main-wrapper, .content-area {
             display: block !important;
             padding: 0 !important;
             margin: 0 !important;
@@ -562,10 +570,7 @@ $stmt_act->close();
             overflow: visible !important;
         }
 
-        .top-navbar,
-        .sidebar,
-        .btn-group-fixed,
-        .d-print-none {
+        .top-navbar, .sidebar, .btn-group-fixed, .d-print-none {
             display: none !important;
         }
 
@@ -579,7 +584,6 @@ $stmt_act->close();
             box-shadow: none !important;
             height: auto !important;
             overflow: visible !important;
-
         }
 
         .portfolio-left {
@@ -593,7 +597,6 @@ $stmt_act->close();
             padding: 15px !important;
             background: white !important;
         }
-
 
         .profile-img-wrapper {
             margin-bottom: 10px !important;
@@ -610,16 +613,12 @@ $stmt_act->close();
             margin-bottom: 3px !important;
         }
 
-        .portfolio-edu,
-        .contact-item {
+        .portfolio-edu, .contact-item {
             font-size: 11px !important;
             margin-bottom: 6px !important;
         }
 
-        .contact-item i {
-            width: 15px;
-        }
-
+        .contact-item i { width: 15px; }
 
         .section-pill {
             padding: 4px 15px !important;
@@ -627,7 +626,6 @@ $stmt_act->close();
             margin-top: 15px !important;
             margin-bottom: 10px !important;
         }
-
 
         .skill-block {
             margin-bottom: 8px !important;
@@ -650,17 +648,13 @@ $stmt_act->close();
             font-size: 9px !important;
             color: #dcdcdc !important;
         }
-
-        .skill-dots .active {
-            color: #3b3d42 !important;
-        }
+        .skill-dots .active { color: #3b3d42 !important; }
 
         .about-text {
             font-size: 11.5px !important;
             margin-bottom: 10px !important;
             line-height: 1.4 !important;
         }
-
 
         .timeline-wrapper {
             display: flex !important;
@@ -686,18 +680,25 @@ $stmt_act->close();
             height: 10px !important;
         }
 
-
+        /* ตั้งค่าการแสดงผล Grid ในหน้าปริ้น PDF ให้ 3 รูปต่อแถวพอดี */
         .act-grid {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
             gap: 5px !important;
-            margin-bottom: 5px !important;
+            margin-bottom: 8px !important;
         }
 
         .act-grid img {
-            width: 50% !important;
+            width: calc((100% - 10px) / 3) !important; /* ช่องว่าง 5px * 2 = 10px */
+            height: 90px !important; /* ย่อขนาดให้พอดีกระดาษ A4 */
+            object-fit: cover !important;
+            margin-bottom: 5px; /* เผื่อกรณีขึ้นบรรทัดใหม่ จะได้ไม่ชิดกัน */
         }
 
         .act-single-img {
             width: 100% !important;
+            height: 90px !important;
             margin-bottom: 5px !important;
         }
 
@@ -718,8 +719,8 @@ $stmt_act->close();
     <nav class="top-navbar d-print-none">
         <div class="brand-section">
             <i class="fa-solid fa-bars d-md-none me-2" id="mobileMenuBtn" style="font-size: 24px; cursor: pointer;"></i>
-            <img src="img/logo.png" alt="Logo" class="brand-logo"
-                onerror="this.src='https://placehold.co/60x60?text=Logo'">
+            <img src="img/logo.png" alt="Logo" class="brand-logo" 
+            onerror="this.src='https://placehold.co/60x60?text=Logo'">
             <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
                 <span class="brand-name">SMO SCITECH KPRU</span>
                 <span class="text-page-pill-btn mt-1">E - portfolio</span>
@@ -731,10 +732,10 @@ $stmt_act->close();
             </span>
             <div class="logout-area">
                 <a href="user_management.php">
-                    <img src="<?php echo $profile_image_url; ?>" alt="Profile"
-                        style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                    <img src="<?php echo $profile_image_url; ?>" alt="Profile" 
+                    style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                 </a>
-                <a href="logout.php" class="logout-text mt-1">Log out</a>
+                <a href="logout.php" class="logout-text mt-1">ออกจากระบบ</a>
             </div>
         </div>
     </nav>
@@ -757,7 +758,6 @@ $stmt_act->close();
 
         <main class="content-area">
             <div class="portfolio-container">
-
                 <div class="portfolio-left">
                     <div class="profile-img-wrapper">
                         <img src="<?php echo $profile_image_url; ?>" class="portfolio-profile-img" alt="Profile">
@@ -792,23 +792,22 @@ $stmt_act->close();
                     <?php endif; ?>
 
                     <div class="section-pill mt-5"><i class="fa-solid fa-bullseye"></i> Soft Skills</div>
-
                     <?php if (count($saved_skills) > 0): ?>
-                    <?php foreach($saved_skills as $skill_name => $level): ?>
-                    <div class="skill-block">
-                        <div class="skill-name"><?php echo htmlspecialchars($skill_name); ?></div>
-                        <div class="skill-dots">
-                            <?php for($i=1; $i<=5; $i++): ?>
-                            <i class="fa-solid fa-circle <?php echo ($i <= $level) ? 'active' : ''; ?>"></i>
-                            <?php endfor; ?>
+                        <?php foreach($saved_skills as $skill_name => $level): ?>
+                        <div class="skill-block">
+                            <div class="skill-name"><?php echo htmlspecialchars($skill_name); ?></div>
+                            <div class="skill-dots">
+                                <?php for($i=1; $i<=5; $i++): ?>
+                                <i class="fa-solid fa-circle <?php echo ($i <= $level) ? 'active' : ''; ?>"></i>
+                                <?php endfor; ?>
+                            </div>
                         </div>
-                    </div>
-                    <?php endforeach; ?>
+                        <?php endforeach; ?>
                     <?php else: ?>
                     <p class="text-muted small mb-4">ยังไม่มีข้อมูลประเมินทักษะ Soft Skills</p>
                     <?php endif; ?>
 
-                    <?php if(count($hard_skills_data) > 0): ?>
+                   <?php if(count($hard_skills_data) > 0): ?>
                     <div class="section-pill mt-5">Hard Skills</div>
                     <?php foreach($hard_skills_data as $hs): ?>
                     <div class="skill-block"
@@ -819,7 +818,7 @@ $stmt_act->close();
                     <?php endforeach; ?>
                     <?php endif; ?>
 
-                    <?php if(count($languages_data) > 0): ?>
+                     <?php if(count($languages_data) > 0): ?>
                     <div class="section-pill mt-5">Languages</div>
                     <?php foreach($languages_data as $lang): ?>
                     <div class="skill-block"
@@ -837,7 +836,7 @@ $stmt_act->close();
 
                 </div>
 
-                <div class="portfolio-right">
+                  <div class="portfolio-right">
 
                     <div class="section-pill"><i class="fa-solid fa-user"></i> About Me</div>
                     <div class="about-text">
@@ -854,13 +853,18 @@ $stmt_act->close();
 
                     <div class="timeline-wrapper">
 
-                        <?php foreach ($portfolio_activities as $act): 
-                            $cover_img = !empty($act['cover_image']) ? 'uploads/covers/' . $act['cover_image'] : 'https://placehold.co/400x300?text=Activity+Image';
-                        ?>
+                        <?php foreach ($portfolio_activities as $act): ?>
                         <div class="timeline-item">
                             <div class="act-grid">
-                                <img src="<?php echo $cover_img; ?>" alt="Activity Photo">
+                                <?php if(count($act['images']) > 0): ?>
+                                    <?php foreach($act['images'] as $img): ?>
+                                        <img src="uploads/evidences/<?php echo htmlspecialchars($img); ?>" alt="Activity Evidence">
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <img src="https://placehold.co/400x300?text=Activity+Evidence" alt="Activity Evidence">
+                                <?php endif; ?>
                             </div>
+
                             <div class="act-title"><?php echo htmlspecialchars($act['title']); ?></div>
                             <div class="act-desc">
                                 บทบาท: <?php echo htmlspecialchars($act['task_name'] ?? 'ผู้เข้าร่วม'); ?>

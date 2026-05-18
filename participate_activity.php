@@ -15,7 +15,6 @@ if ($activity_id === 0) {
     exit();
 }
 
-
 $stmt_profile = $conn->prepare("SELECT profile_image, first_name FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
 $stmt_profile->execute();
@@ -25,29 +24,45 @@ $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image
 $first_name = !empty($user_data['first_name']) ? $user_data['first_name'] : 'ผู้ใช้งาน';
 $stmt_profile->close();
 
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['join_activity'])) {
-    $task_id = $_POST['task_id'];
+    $task_ids = isset($_POST['task_id']) ? $_POST['task_id'] : [];
 
-    $insert_sql = "INSERT INTO activity_registrations (user_id, activity_id, task_id, registration_status, participation_status) 
-                   VALUES (?, ?, ?, 'pending', 'waiting')";
-    $stmt = $conn->prepare($insert_sql);
-    $stmt->bind_param("iii", $user_id, $activity_id, $task_id);
-    
-    if ($stmt->execute()) {
-        $_SESSION['status_modal'] = [
-            'type' => 'success',
-            'title' => 'สำเร็จ',
-            'message' => 'ลงทะเบียนเข้าร่วมกิจกรรมเรียบร้อยแล้ว รอการอนุมัติจากสโมสร'
-        ];
+    if (count($task_ids) > 0 && count($task_ids) <= 2) {
+        $conn->begin_transaction();
+        try {
+            $insert_sql = "INSERT INTO activity_registrations (user_id, activity_id, task_id, registration_status, participation_status) 
+                           VALUES (?, ?, ?, 'pending', 'waiting')";
+            $stmt = $conn->prepare($insert_sql);
+            
+            foreach ($task_ids as $task_id) {
+                $t_id = intval($task_id);
+                $stmt->bind_param("iii", $user_id, $activity_id, $t_id);
+                $stmt->execute();
+            }
+            
+            $conn->commit();
+            $_SESSION['status_modal'] = [
+                'type' => 'success',
+                'title' => 'สำเร็จ',
+                'message' => 'ลงทะเบียนเข้าร่วมกิจกรรมเรียบร้อยแล้ว (จำนวน ' . count($task_ids) . ' หน้าที่)'
+            ];
+            $stmt->close();
+        } catch (Exception $e) {
+            $conn->rollback();
+            $_SESSION['status_modal'] = [
+                'type' => 'error',
+                'title' => 'ผิดพลาด',
+                'message' => 'ไม่สามารถลงทะเบียนได้ กรุณาลองใหม่อีกครั้ง'
+            ];
+        }
     } else {
         $_SESSION['status_modal'] = [
             'type' => 'error',
             'title' => 'ผิดพลาด',
-            'message' => 'ไม่สามารถลงทะเบียนได้ กรุณาลองใหม่อีกครั้ง'
+            'message' => 'กรุณาเลือกหน้าที่ 1-2 อย่าง'
         ];
     }
-    $stmt->close();
+    
     header("Location: participate_activity.php?id=" . $activity_id);
     exit();
 }
@@ -78,19 +93,25 @@ while($row = $result_tasks->fetch_assoc()) {
 }
 $stmt->close();
 
+// --- แก้ไขส่วนการตรวจสอบสถานะการลงทะเบียน ดึงข้อมูลทุก Tasks ---
 $is_registered = false;
-$reg_status = '';
-$sql_check = "SELECT registration_status FROM activity_registrations WHERE user_id = ? AND activity_id = ? AND registration_status != 'cancelled'";
+$registered_tasks = [];
+$sql_check = "SELECT r.registration_status, t.task_name 
+              FROM activity_registrations r 
+              LEFT JOIN activity_tasks t ON r.task_id = t.task_id 
+              WHERE r.user_id = ? AND r.activity_id = ? AND r.registration_status != 'cancelled'";
 $stmt = $conn->prepare($sql_check);
 $stmt->bind_param("ii", $user_id, $activity_id);
 $stmt->execute();
 $result_check = $stmt->get_result();
 if ($result_check->num_rows > 0) {
     $is_registered = true;
-    $reg_data = $result_check->fetch_assoc();
-    $reg_status = $reg_data['registration_status'];
+    while($r_data = $result_check->fetch_assoc()) {
+        $registered_tasks[] = $r_data;
+    }
 }
 $stmt->close();
+// -----------------------------------------------------------
 
 $cover_img = !empty($activity['cover_image']) ? 'uploads/covers/' . $activity['cover_image'] : '';
 $gradients = [
@@ -137,7 +158,6 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
         min-height: 100vh;
     }
 
-    
     .top-navbar {
         background-color: var(--top-bar-bg);
         min-height: 80px;
@@ -207,14 +227,12 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
         display: block;
     }
 
-    
     .main-wrapper {
         display: flex;
         flex: 1;
         position: relative;
     }
 
-    
     .sidebar {
         width: 230px;
         background-color: var(--yellow-sidebar);
@@ -251,7 +269,6 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
 
     .sidebar-item span { font-weight: bold; font-size: 13px; }
 
-    
     .content-area {
         flex-grow: 1;
         padding: 30px;
@@ -348,10 +365,8 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
         box-shadow: 0 4px 15px rgba(99, 88, 225, 0.3);
     }
 
-    
     .bg-purple { background-color: var(--btn-blue) !important; }
 
-    
     @media (max-width: 768px) {
         .sidebar {
             position: absolute;
@@ -391,7 +406,7 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
                         <img src="uploads/profiles/<?php echo htmlspecialchars($profile_image); ?>" alt="Profile"
                             style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     </a>
-                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                    <a href="logout.php" class="logout-text mt-1">ออกจากระบบ</a>
                 </div>
             </div>
         </nav>
@@ -446,8 +461,14 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
                                     <div>
                                         <small class="text-muted d-block">วันที่จัดกิจกรรม</small>
                                         <strong class="text-dark">
-                                            <?php echo date('d/m/Y H:i', strtotime($activity['start_date'])); ?> - <br>
-                                            <?php echo date('d/m/Y H:i', strtotime($activity['end_date'])); ?>
+                                            <?php 
+                                            $start_time = strtotime($activity['start_date']);
+                                            echo date('d/m/', $start_time) . (date('Y', $start_time) + 543) . date(' H:i', $start_time); 
+                                                ?> - <br>
+                                                <?php 
+                                            $end_time = strtotime($activity['end_date']);
+                                            echo date('d/m/', $end_time) . (date('Y', $end_time) + 543) . date(' H:i', $end_time); 
+                                                ?>
                                         </strong>
                                     </div>
                                 </div>
@@ -478,14 +499,21 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
                                 </h5>
 
                                 <?php if ($is_registered): ?>
-                                    <?php 
-                                        $reg_alert = 'alert-warning'; $reg_msg = 'รอการอนุมัติ';
-                                        if($reg_status == 'approved') { $reg_alert = 'alert-success'; $reg_msg = 'ได้รับการอนุมัติแล้ว'; }
-                                        if($reg_status == 'rejected') { $reg_alert = 'alert-danger'; $reg_msg = 'ถูกปฏิเสธการเข้าร่วม'; }
-                                    ?>
-                                    <div class="alert <?php echo $reg_alert; ?> text-center mb-0 border-0 shadow-sm">
-                                        <i class="fa-solid fa-info-circle me-2"></i> คุณได้ลงทะเบียนกิจกรรมนี้ไปแล้ว <br>
-                                        สถานะปัจจุบัน: <strong><?php echo $reg_msg; ?></strong>
+                                    <div class="alert text-center mb-0">
+                                        <h6 class="fw-bold mb-3"><i class="fa-solid fa-info-circle me-2"></i> คุณได้ลงทะเบียนกิจกรรมนี้ไปแล้ว</h6>
+                                        <div class="d-flex flex-column gap-2 align-items-center">
+                                            <?php foreach($registered_tasks as $rt): 
+                                                $r_status = $rt['registration_status'];
+                                                $r_color = '#856404'; $r_bg = '#fff3cd'; $r_msg = 'รอการอนุมัติ';
+                                                if($r_status == 'approved') { $r_color = '#155724'; $r_bg = '#d4edda'; $r_msg = 'ได้รับการอนุมัติแล้ว'; }
+                                                if($r_status == 'rejected') { $r_color = '#721c24'; $r_bg = '#f8d7da'; $r_msg = 'ถูกปฏิเสธการเข้าร่วม'; }
+                                            ?>
+                                                <div class="px-3 py-2 rounded" style="background-color: <?php echo $r_bg; ?>; color: <?php echo $r_color; ?>; font-size: 15px; width: fit-content; border: 1px solid rgba(0,0,0,0.05);">
+                                                    <strong>หน้าที่:</strong> <?php echo htmlspecialchars($rt['task_name'] ?? 'ไม่ระบุ'); ?> <br class="d-md-none">
+                                                    <span class="d-none d-md-inline">|</span> <strong>สถานะ:</strong> <?php echo $r_msg; ?>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
 
                                 <?php elseif ($activity['status'] != 'open'): ?>
@@ -502,9 +530,9 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
                                                     $is_exceeded = ($task['current_reg'] >= $task['capacity'] && $task['capacity'] > 0);
                                                 ?>
                                             <div class="col-md-6">
-                                                <input class="form-check-input d-none task-input" type="radio" name="task_id"
+                                                <input class="form-check-input d-none task-input" type="checkbox" name="task_id[]"
                                                     id="task_<?php echo $task['task_id']; ?>"
-                                                    value="<?php echo $task['task_id']; ?>" required>
+                                                    value="<?php echo $task['task_id']; ?>" <?php echo $is_exceeded ? 'disabled' : ''; ?>>
                                                 <label class="w-100 h-100" for="task_<?php echo $task['task_id']; ?>">
                                                     <div class="task-card p-3 h-100 d-flex flex-column">
                                                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -570,7 +598,6 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
             myModal.show();
         }
 
-        
         $('#mobileMenuBtn').on('click', function(e) {
             e.stopPropagation();
             $('.sidebar').toggleClass('active');
@@ -583,6 +610,35 @@ $header_bg = $cover_img ? "url('$cover_img') center/cover" : $current_gradient;
                 }
             }
         });
+
+        const checkboxes = document.querySelectorAll('.task-input');
+        const maxSelection = 2;
+        let selectedTasks = [];
+
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    selectedTasks.push(this);
+                    if (selectedTasks.length > maxSelection) {
+                        const oldest = selectedTasks.shift();
+                        oldest.checked = false;
+                    }
+                } else {
+                    selectedTasks = selectedTasks.filter(item => item !== this);
+                }
+            });
+        });
+
+        const joinForm = document.getElementById('joinForm');
+        if (joinForm) {
+            joinForm.addEventListener('submit', function(e) {
+                const checkedCount = document.querySelectorAll('.task-input:checked').length;
+                if (checkedCount === 0) {
+                    e.preventDefault();
+                    alert('กรุณาเลือกอย่างน้อย 1 หน้าที่');
+                }
+            });
+        }
     });
     </script>
 </body>

@@ -24,10 +24,12 @@ $stmt_profile->close();
 $sql = "SELECT a.*, 
                ar.registration_id, 
                ar.registration_status,
+               t.task_name,
                (SELECT SUM(capacity) FROM activity_tasks WHERE activity_id = a.activity_id) as total_capacity,
                (SELECT COUNT(*) FROM activity_registrations WHERE activity_id = a.activity_id AND registration_status != 'cancelled') as current_registrations
         FROM activities a
         LEFT JOIN activity_registrations ar ON a.activity_id = ar.activity_id AND ar.user_id = ?
+        LEFT JOIN activity_tasks t ON ar.task_id = t.task_id
         WHERE (a.allowed_year_level IS NULL OR a.allowed_year_level = '' OR a.allowed_year_level LIKE CONCAT('%', ?, '%'))
         AND (a.allowed_academic_year IS NULL OR a.allowed_academic_year = '' OR a.allowed_academic_year LIKE CONCAT('%', ?, '%'))
         AND (a.allowed_department IS NULL OR a.allowed_department = '' OR a.allowed_department LIKE CONCAT('%', ?, '%'))
@@ -421,7 +423,7 @@ $result = $stmt->get_result();
                             style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"
                             onerror="this.src='https://via.placeholder.com/45'">
                     </a>
-                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                    <a href="logout.php" class="logout-text mt-1">ออกจากระบบ</a>
                 </div>
             </div>
         </nav>
@@ -542,7 +544,12 @@ $result = $stmt->get_result();
                                     ?>
                                     <tr>
                                         <td><?php echo $i++; ?></td>
-                                        <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                        <td>
+                                            <?php echo htmlspecialchars($row['title']); ?>
+                                            <?php if(!empty($row['task_name'])): ?>
+                                                <br><small class="text-primary fw-bold">(หน้าที่: <?php echo htmlspecialchars($row['task_name']); ?>)</small>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?php echo $date_display; ?></td>
                                         <td>
                                             <a href="upload_evidence.php?reg_id=<?php echo $row['registration_id']; ?>"

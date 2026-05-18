@@ -132,7 +132,7 @@ $level_options = ['ดีเยี่ยม', 'ดี', 'ปานกลาง',
             <span class="d-none d-sm-block fw-bold me-2 login-pill-btn"><?php echo htmlspecialchars($first_name); ?></span>
             <div class="logout-area">
                 <a href="user_management.php"><img src="<?php echo $profile_image_url; ?>" alt="Profile" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"></a>
-                <a href="logout.php" class="logout-text mt-1">Log out</a>
+                <a href="logout.php" class="logout-text mt-1">ออกจากระบบ</a>
             </div>
         </div>
     </nav>

@@ -289,7 +289,7 @@ $profile_image_navbar = !empty($user_data['profile_image']) && $user_data['profi
                         <img src="uploads/profiles/<?php echo htmlspecialchars($profile_image_navbar); ?>" alt="Profile"
                              style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     </a>
-                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                    <a href="logout.php" class="logout-text mt-1">ออกจากระบบ</a>
                 </div>
             </div>
         </nav>

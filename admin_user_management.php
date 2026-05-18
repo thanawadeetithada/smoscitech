@@ -10,8 +10,6 @@ if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_r
 }
 
 $current_user_role = $_SESSION['userrole'];
-
-
 $user_id = $_SESSION['user_id'];
 $stmt_profile = $conn->prepare("SELECT profile_image FROM users WHERE user_id = ?");
 $stmt_profile->bind_param("i", $user_id);
@@ -22,14 +20,15 @@ $user_data = $res_profile->fetch_assoc();
 $profile_image = !empty($user_data['profile_image']) ? $user_data['profile_image'] : 'default.png';
 $stmt_profile->close();
 
-
 if ($current_user_role === 'academic_officer') {
     $sql = "SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, membership_status, academic_year, year_level, profile_image
-            FROM users WHERE deleted_at IS NULL";
+            FROM users WHERE deleted_at IS NULL 
+            ORDER BY department ASC, idstudent ASC";
     $stmt = $conn->prepare($sql);
 } else if ($current_user_role === 'club_president') {
     $sql = "SELECT user_id, idstudent, email, first_name, last_name, password, userrole, department, membership_status, academic_year, year_level, profile_image
-            FROM users WHERE deleted_at IS NULL AND userrole = 'club_member'";
+            FROM users WHERE deleted_at IS NULL AND userrole = 'club_member' 
+            ORDER BY department ASC, idstudent ASC";
     $stmt = $conn->prepare($sql);
 }
 
@@ -288,7 +287,6 @@ $role_names = [
         border-radius: 0 5px 5px 0;
     }
 
-    
     .status-select {
         text-align: center;
         font-weight: bold;
@@ -375,7 +373,7 @@ $role_names = [
                         <img src="uploads/profiles/<?php echo htmlspecialchars($profile_image); ?>" alt="Profile"
                             style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     </a>
-                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                    <a href="logout.php" class="logout-text mt-1">ออกจากระบบ</a>
                 </div>
             </div>
         </nav>
@@ -448,6 +446,7 @@ $role_names = [
                         <thead>
                             <tr>
                                 <th>ลำดับ</th>
+                                <th>รหัสนักศึกษา</th>
                                 <th>ชื่อ - นามสกุล</th>
                                 <th>ชั้นปี</th>
                                 <th>สาขาวิชา</th>
@@ -466,10 +465,8 @@ $role_names = [
                     $role_key = $row['userrole'];
                     $display_role = isset($role_names[$role_key]) ? $role_names[$role_key] : $role_key;
                     
-                    
                     $full_name = $row['first_name'] . " " . $row['last_name'];
 
-                    
                     $status_val = $row['membership_status'];
                     $select_class = '';
                     
@@ -478,11 +475,9 @@ $role_names = [
                     } else if ($status_val === 'no_member') {
                         $select_class = 'bg-danger text-white'; 
                     } else {
-                        
                         $select_class = 'bg-warning text-dark'; 
                     }
 
-                    
                     $status_html = "
                         <select class='form-select form-select-sm status-select {$select_class} mx-auto' 
                                 data-user-id='{$row['user_id']}' style='width: 190px;'>
@@ -494,7 +489,8 @@ $role_names = [
 
                     echo "<tr>
                             <td>" . $ลำดับ++ . "</td>
-                            <td>" . htmlspecialchars($full_name) . "</td>
+                            <td class='text-start'>" . htmlspecialchars($row['idstudent']) . "</td>
+                            <td class='text-start'>" . htmlspecialchars($full_name) . "</td>
                             <td>" . htmlspecialchars($row['year_level']) . "</td>
                             <td>" . htmlspecialchars($row['department']) . "</td>
                             <td>" . htmlspecialchars($display_role) . "</td>
@@ -580,7 +576,6 @@ $role_names = [
             }
         });
 
-        
         $(".search-name").on("keyup", function() {
             var value = $(this).val().toLowerCase();
             var visibleRows = 0;
@@ -599,9 +594,6 @@ $role_names = [
             }
         });
 
-        
-        
-        
         $(document).on('change', '.status-select', function() {
             var userId = $(this).data('user-id');
             var newStatus = $(this).val();
@@ -618,7 +610,6 @@ $role_names = [
                     
                     selectElement.removeClass('bg-success bg-danger bg-warning text-white text-dark');
                     
-                    
                     if (newStatus === 'member') {
                         selectElement.addClass('bg-success text-white');
                     } else if (newStatus === 'no_member') {
@@ -626,10 +617,6 @@ $role_names = [
                     } else {
                         selectElement.addClass('bg-warning text-dark');
                     }
-                    
-                    
-                    
-                    
                 },
                 error: function() {
                     alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
@@ -637,7 +624,6 @@ $role_names = [
             });
         });
 
-        
         let deleteUserId = null;
 
         $(".delete-btn").click(function(e) {

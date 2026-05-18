@@ -85,12 +85,17 @@ $stmt_custom->close();
 
 $portfolio_activities = [];
 $sql_act = "SELECT 
-                a.title, a.description, a.start_date, a.end_date, a.hours_count, a.cover_image,
-                t.task_name
+                ar.registration_id,
+                a.title, a.description, a.start_date, a.end_date, a.hours_count,
+                t.task_name,
+                ev.image_path
             FROM activity_registrations ar
             JOIN activities a ON ar.activity_id = a.activity_id
             LEFT JOIN activity_tasks t ON ar.task_id = t.task_id
-            WHERE ar.user_id = ? AND ar.registration_status = 'approved' AND ar.participation_status = 'passed'
+            LEFT JOIN activity_evidences ev ON ar.registration_id = ev.registration_id
+            WHERE ar.user_id = ? 
+            AND ar.registration_status = 'approved' 
+            AND ar.participation_status = 'passed'
             ORDER BY a.start_date DESC";
             
 $stmt_act = $conn->prepare($sql_act);
@@ -98,7 +103,20 @@ $stmt_act->bind_param("i", $target_user_id);
 $stmt_act->execute();
 $result_act = $stmt_act->get_result();
 while ($row = $result_act->fetch_assoc()) {
-    $portfolio_activities[] = $row;
+    $reg_id = $row['registration_id'];
+    
+    if (!isset($portfolio_activities[$reg_id])) {
+        $portfolio_activities[$reg_id] = [
+            'title' => $row['title'],
+            'task_name' => $row['task_name'],
+            'hours_count' => $row['hours_count'],
+            'images' => [] 
+        ];
+    }
+    
+    if (!empty($row['image_path'])) {
+        $portfolio_activities[$reg_id]['images'][] = $row['image_path'];
+    }
 }
 $stmt_act->close();
 ?>
@@ -414,21 +432,25 @@ $stmt_act->close();
     }
 
     .act-grid {
+        display: flex;
+        flex-wrap: wrap;
         gap: 10px;
         margin-bottom: 15px;
     }
 
     .act-grid img {
-        width: 50%;
+        width: calc((100% - 20px) / 3); 
+        height: 160px;
         object-fit: cover;
-        border-radius: 4px;
+        border-radius: 6px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .act-single-img {
         width: 100%;
+        height: 160px;
         object-fit: cover;
-        border-radius: 4px;
+        border-radius: 6px;
         margin-bottom: 15px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
@@ -533,8 +555,8 @@ $stmt_act->close();
             margin-left: 10px;
         }
 
-        .act-grid {
-            grid-template-columns: repeat(2, 1fr);
+        .act-grid img {
+            width: calc((100% - 10px) / 2); 
         }
 
         .btn-group-fixed {
@@ -699,16 +721,23 @@ $stmt_act->close();
 
 
         .act-grid {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
             gap: 5px !important;
-            margin-bottom: 5px !important;
+            margin-bottom: 8px !important;
         }
 
         .act-grid img {
-            width: 50% !important;
+            width: calc((100% - 10px) / 3) !important;
+            height: 90px !important;
+            object-fit: cover !important;
+            margin-bottom: 5px;
         }
 
         .act-single-img {
             width: 100% !important;
+            height: 90px !important;
             margin-bottom: 5px !important;
         }
 
@@ -748,7 +777,7 @@ $stmt_act->close();
                         <img src="uploads/profiles/<?php echo htmlspecialchars($admin_profile_image); ?>" alt="Profile"
                             style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     </a>
-                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                    <a href="logout.php" class="logout-text mt-1">ออกจากระบบ</a>
                 </div>
             </div>
         </nav>
@@ -924,13 +953,18 @@ $stmt_act->close();
                             </div>
                             <?php endforeach; ?>
 
-                            <?php foreach ($portfolio_activities as $act): 
-                                $cover_img = !empty($act['cover_image']) ? 'uploads/covers/' . $act['cover_image'] : 'https://placehold.co/400x300?text=Activity+Image';
-                            ?>
+                            <?php foreach ($portfolio_activities as $act): ?>
                             <div class="timeline-item">
                                 <div class="act-grid">
-                                    <img src="<?php echo $cover_img; ?>" alt="Activity Photo">
+                                    <?php if(count($act['images']) > 0): ?>
+                                        <?php foreach($act['images'] as $img): ?>
+                                            <img src="uploads/evidences/<?php echo htmlspecialchars($img); ?>" alt="Activity Evidence">
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <img src="https://placehold.co/400x300?text=Activity+Evidence" alt="Activity Evidence">
+                                    <?php endif; ?>
                                 </div>
+                                
                                 <div class="act-title"><?php echo htmlspecialchars($act['title']); ?></div>
                                 <div class="act-desc">
                                     บทบาท: <?php echo htmlspecialchars($act['task_name'] ?? 'ผู้เข้าร่วม'); ?>

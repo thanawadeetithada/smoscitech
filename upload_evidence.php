@@ -526,7 +526,7 @@ $existing_images = $stmt_imgs->get_result();
                             style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid white;"
                             onerror="this.src='https://via.placeholder.com/45'">
                     </a>
-                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                    <a href="logout.php" class="logout-text mt-1">ออกจากระบบ</a>
                 </div>
             </div>
         </nav>

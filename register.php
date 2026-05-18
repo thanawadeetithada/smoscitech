@@ -252,7 +252,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <div class="col-md-6 col-12">
                             <div class="input-group-custom"><i class="fa fa-id-card"></i>
                                 <input type="text" name="idstudent" placeholder="รหัสนักศึกษา" required
-                                    value="<?= htmlspecialchars($_POST['idstudent'] ?? '') ?>">
+                                pattern="[0-9]{9}" 
+                                maxlength="9" 
+                                inputmode="numeric"
+                                oninvalid="this.setCustomValidity('กรุณากรอกรหัสนักศึกษาเป็นตัวเลข 9 หลักเท่านั้น')"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, ''); this.setCustomValidity('');"`
+                                value="<?= htmlspecialchars($_POST['idstudent'] ?? '') ?>">
                             </div>
                         </div>
 

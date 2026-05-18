@@ -2,6 +2,17 @@
 session_start();
 include 'db.php';
 
+// ฟังก์ชันสำหรับแปลงวันที่เป็นภาษาไทย
+function DateThai($strDate) {
+    if (!$strDate) return '-';
+    $strYear = date("Y",strtotime($strDate))+543;
+    $strMonth= date("n",strtotime($strDate));
+    $strDay= date("j",strtotime($strDate));
+    $strMonthCut = Array("","มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม");
+    $strMonthThai = $strMonthCut[$strMonth];
+    return "$strDay $strMonthThai $strYear";
+}
+
 $allowed_roles = ['executive', 'academic_officer', 'club_president'];
 if (!isset($_SESSION['userrole']) || !in_array($_SESSION['userrole'], $allowed_roles)) {
     header("Location: index.php");
@@ -354,7 +365,7 @@ $registrations = $stmt_reg->get_result();
                         <img src="uploads/profiles/<?php echo htmlspecialchars($profile_image); ?>" alt="Profile"
                             style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     </a>
-                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                    <a href="logout.php" class="logout-text mt-1">ออกจากระบบ</a>
                 </div>
             </div>
         </nav>
@@ -450,7 +461,7 @@ $registrations = $stmt_reg->get_result();
                             <div class="stats-card p-4 text-center">
                                 <div class="text-muted small mb-1">วันที่จัดกิจกรรม</div>
                                 <div class="fw-bold text-dark" style="font-size: 1.3rem; margin-top: 5px;">
-                                    <?php echo date('d M Y', strtotime($activity['start_date'])); ?>
+                                    <?php echo DateThai($activity['start_date']); ?>
                                 </div>
                             </div>
                         </div>
@@ -474,7 +485,7 @@ $registrations = $stmt_reg->get_result();
                                 <thead>
                                     <tr>
                                         <th width="15%">รหัสนักศึกษา</th>
-                                        <th width="30%">ชื่อ-นามสกุล</th>
+                                        <th class="text-start" width="30%">ชื่อ-นามสกุล</th>
                                         <th width="20%">ฝ่าย/หน้าที่</th>
                                         <th width="15%">วันที่สมัคร</th>
                                         <th width="20%" class="text-center">สถานะการอนุมัติ</th>
@@ -489,14 +500,17 @@ $registrations = $stmt_reg->get_result();
                                         ?>
                                     <tr>
                                         <td class="fw-bold" style="color: var(--btn-blue);"><?php echo htmlspecialchars($reg['idstudent']); ?></td>
-                                        <td><?php echo htmlspecialchars($reg['first_name'] . ' ' . $reg['last_name']); ?></td>
+                                        <td class="text-start"><?php echo htmlspecialchars($reg['first_name'] . ' ' . $reg['last_name']); ?></td>
                                         <td>
                                             <span class="badge bg-light text-dark border px-2 py-1">
                                                 <?php echo htmlspecialchars($reg['task_name'] ?: 'ไม่ระบุ'); ?>
                                             </span>
                                         </td>
                                         <td class="small text-muted">
-                                            <?php echo date('d/m/Y H:i', strtotime($reg['registered_at'])); ?>
+                                            <?php 
+                                                $reg_time = strtotime($reg['registered_at']);
+                                                echo date('d/m/', $reg_time) . (date('Y', $reg_time) + 543) . date(' H:i', $reg_time); 
+                                            ?>
                                         </td>
                                         <td class="text-center">
                                             <select class="form-select form-select-sm status-select <?php echo $select_class; ?> mx-auto"

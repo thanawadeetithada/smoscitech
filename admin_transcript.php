@@ -350,7 +350,7 @@ while($y = $year_query->fetch_assoc()) {
                     <a href="user_management.php"><img
                             src="uploads/profiles/<?php echo htmlspecialchars($profile_image); ?>" alt="Profile"
                             style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"></a>
-                    <a href="logout.php" class="logout-text mt-1">Log out</a>
+                    <a href="logout.php" class="logout-text mt-1">ออกจากระบบ</a>
                 </div>
             </div>
         </nav>
@@ -429,7 +429,7 @@ while($y = $year_query->fetch_assoc()) {
                     <table class="custom-table" id="memberTable">
                         <thead>
                             <tr>
-                                <th width="40%">ชื่อ-นามสกุล</th>
+                                <th class="text-start" width="40%">ชื่อ-นามสกุล</th>
                                 <th width="35%">สาขาวิชา</th>
                                 <th width="25%">Transcript</th>
                             </tr>
@@ -438,7 +438,7 @@ while($y = $year_query->fetch_assoc()) {
                             <?php if ($result->num_rows > 0): ?>
                             <?php while ($row = $result->fetch_assoc()): ?>
                             <tr>
-                                <td><?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) ?></td>
+                                <td class="text-start"><?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) ?></td>
                                 <td><?= htmlspecialchars($row['department']) ?></td>
                                 <td>
                                     <a
